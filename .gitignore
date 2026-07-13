@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Rust build output
+src-tauri/target/
+src-tauri/gen/
+
+# Tauri bundles
+src-tauri/bundle/
+
+# Editor / OS
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Local tool config (machine-specific, not project source)
+.claude/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Env
+.env
+.env.local
