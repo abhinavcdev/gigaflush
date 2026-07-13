@@ -1,0 +1,19 @@
+{
+  "name": "nodeminus",
+  "version": "0.1.0",
+  "description": "System tray utility to scan and purge node_modules directories",
+  "private": true,
+  "scripts": {
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "site:deploy": "wrangler deploy -c site/wrangler.jsonc"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "wrangler": "^4"
+  }
+}
