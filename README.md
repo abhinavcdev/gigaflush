@@ -106,15 +106,16 @@ cargo test
 │   │   ├── commands.rs   # Tauri commands: scan, delete, folder picker
 │   │   └── lib.rs        # Tray icon, window, menu setup
 │   └── capabilities/     # Tauri v2 permission scoping
-├── site/                 # Landing page (static, deployed as a Cloudflare Worker)
-└── .github/workflows/    # Release pipeline (GitHub Releases + Cloudflare R2)
+├── site/                 # Landing page (static; deploy anywhere, e.g. Cloudflare Workers)
+└── .github/workflows/    # Release pipeline (builds + publishes to GitHub Releases)
 ```
 
 ## Releasing
 
 Maintainers: see [RELEASING.md](RELEASING.md) for the full release process —
-tagging a version builds all four platform targets, publishes a GitHub Release,
-and mirrors direct-download artifacts to Cloudflare R2 for the landing page.
+tagging a version builds all four platform targets and publishes them to a
+GitHub Release, with stable download URLs the landing page links to directly.
+No external storage or secrets required.
 
 ## Contributing
 

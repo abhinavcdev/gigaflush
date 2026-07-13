@@ -29,8 +29,9 @@ Initial release.
   nested `node_modules` duplicates.
 - Landing page with platform auto-detection for direct downloads.
 - Release pipeline: tagging a version builds macOS (Apple Silicon + Intel),
-  Windows, and Linux bundles, publishes a GitHub Release, and mirrors
-  stable-named artifacts plus checksums to Cloudflare R2.
+  Windows, and Linux bundles and publishes them to a GitHub Release, with a
+  stable-named copy of each installer plus a checksum file attached so the
+  landing page's download links never change between versions.
 
 ### Known limitations
 

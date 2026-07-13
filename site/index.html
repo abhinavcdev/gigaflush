@@ -1553,10 +1553,10 @@
       <section class="section" id="download">
         <div class="section-head">
           <h2>Download NodeMinus</h2>
-          <p id="download-sub">Direct downloads are served from our CDN. Every build is also published on
+          <p id="download-sub">Every build is published straight to
             <a data-github href="https://github.com/abhinavcdev/nodeminus" style="color: var(--text);">GitHub
               Releases</a>
-            with checksums.
+            with checksums — no third-party CDN in between.
           </p>
         </div>
 
@@ -1592,7 +1592,7 @@
                     <span>Intel</span><span class="k-ext">.dmg</span>
                   </a>
                 </div>
-                <p class="dl-alt">or grab it from <a data-github-latest href="#">GitHub Releases</a></p>
+                <p class="dl-alt">See all versions &amp; changelogs on <a data-github-latest href="#">GitHub</a></p>
               </div>
 
               <div class="dl-card" data-os="windows">
@@ -1612,7 +1612,7 @@
                     <span>Installer</span><span class="k-ext">.exe</span>
                   </a>
                 </div>
-                <p class="dl-alt">or grab it from <a data-github-latest href="#">GitHub Releases</a></p>
+                <p class="dl-alt">See all versions &amp; changelogs on <a data-github-latest href="#">GitHub</a></p>
               </div>
 
               <div class="dl-card" data-os="linux">
@@ -1635,7 +1635,7 @@
                     <span>Debian / Ubuntu</span><span class="k-ext">.deb</span>
                   </a>
                 </div>
-                <p class="dl-alt">or grab it from <a data-github-latest href="#">GitHub Releases</a></p>
+                <p class="dl-alt">See all versions &amp; changelogs on <a data-github-latest href="#">GitHub</a></p>
               </div>
             </div>
           </div>
@@ -1661,13 +1661,15 @@
 
   <script>
     // ── Release configuration ─────────────────────────────────────
-    // DOWNLOAD_BASE: your R2 public hostname — either the bucket's custom
-    // domain (recommended, e.g. https://dl.nodeminus.app) or its r2.dev URL
-    // (https://pub-<hash>.r2.dev). The release workflow uploads stable-named
-    // artifacts under /latest/ and a version manifest at /latest.json.
-    const DOWNLOAD_BASE = "https://dl.nodeminus.app";
+    // Downloads are served straight from GitHub Releases — no CDN, bucket,
+    // or domain to manage. GitHub resolves "releases/latest/download/<name>"
+    // against whichever release is currently marked latest, so these links
+    // stay correct across versions. The release workflow (see
+    // .github/workflows/release.yml) attaches a copy of each platform's
+    // installer under these exact names, plus a SHA256SUMS.txt, to every
+    // release it publishes.
     const GITHUB_REPO = "abhinavcdev/nodeminus";
-    const FALLBACK_VERSION = "v0.1.0";
+    const RELEASE_DOWNLOAD_BASE = `https://github.com/${GITHUB_REPO}/releases/latest/download`;
 
     const FILES = {
       "macos-arm64": "NodeMinus-macos-arm64.dmg",
@@ -1680,7 +1682,7 @@
     // Wire download + GitHub links.
     document.querySelectorAll("[data-dl]").forEach((el) => {
       const file = FILES[el.getAttribute("data-dl")];
-      if (file) el.href = `${DOWNLOAD_BASE}/latest/${file}`;
+      if (file) el.href = `${RELEASE_DOWNLOAD_BASE}/${file}`;
     });
     document.querySelectorAll("[data-github]").forEach((el) => {
       el.href = `https://github.com/${GITHUB_REPO}`;
@@ -1692,16 +1694,17 @@
       el.href = `https://github.com/${GITHUB_REPO}/issues`;
     });
     document.querySelectorAll("[data-sums]").forEach((el) => {
-      el.href = `${DOWNLOAD_BASE}/latest/SHA256SUMS.txt`;
+      el.href = `${RELEASE_DOWNLOAD_BASE}/SHA256SUMS.txt`;
     });
 
-    // Show the live version if the manifest is reachable (needs CORS on the
-    // bucket when the site and downloads live on different origins).
-    fetch(`${DOWNLOAD_BASE}/latest.json`)
+    // Show the live version from the GitHub API — public, unauthenticated
+    // requests to api.github.com send permissive CORS headers, so this
+    // works with no server-side config.
+    fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((manifest) => {
-        if (manifest && manifest.version) {
-          document.getElementById("version-badge").textContent = `v${manifest.version}`;
+      .then((release) => {
+        if (release && release.tag_name) {
+          document.getElementById("version-badge").textContent = release.tag_name;
         }
       })
       .catch(() => { });
@@ -1749,8 +1752,8 @@
       secondaryGrid.style.gridTemplateColumns =
         otherCards.length > 1 ? "" : "1fr";
 
-      sub.innerHTML = `We've picked the ${OS_NAMES[os]} build for you based on your device. Every release is also published on
-        <a data-github href="https://github.com/${GITHUB_REPO}" style="color: var(--text);">GitHub Releases</a> with checksums.`;
+      sub.innerHTML = `We've picked the ${OS_NAMES[os]} build for you based on your device — served straight from
+        <a data-github href="https://github.com/${GITHUB_REPO}" style="color: var(--text);">GitHub Releases</a>, checksums included.`;
 
       if (otherCards.length > 0) {
         toggle.hidden = false;
