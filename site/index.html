@@ -1,0 +1,1913 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NodeMinus — delete node_modules, get your disk back</title>
+  <meta name="description"
+    content="NodeMinus is a tiny menu-bar app that finds every node_modules folder on your machine and purges the ones you pick. Free, open source, for macOS, Windows and Linux." />
+  <meta property="og:title" content="NodeMinus — delete node_modules, get your disk back" />
+  <meta property="og:description"
+    content="A tiny menu-bar utility that finds every node_modules folder and reclaims gigabytes in seconds." />
+  <style>
+    :root {
+      color-scheme: dark;
+      --ground: #0d0d10;
+      --ground-hi: #131317;
+      --shell-hi: #333336;
+      --shell: #232326;
+      --shell-lo: #1c1c1f;
+      --screen: #0a0a0c;
+      --key-hi: #424247;
+      --key-lo: #333338;
+      --key-edge: rgba(255, 255, 255, 0.14);
+      --edge: rgba(255, 255, 255, 0.1);
+      --edge-soft: rgba(255, 255, 255, 0.06);
+      --text: #f4f4f6;
+      --muted: #a2a2aa;
+      --subtle: #74747c;
+      --accent: #0a84ff;
+      --accent-hi: #47a1ff;
+      --success: #30d158;
+      --danger: #ff453a;
+      --mono: "SF Mono", ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      background:
+        radial-gradient(900px 520px at 78% 12%, rgba(10, 132, 255, 0.07), transparent 65%),
+        radial-gradient(700px 500px at 12% 88%, rgba(10, 132, 255, 0.04), transparent 60%),
+        var(--ground);
+      color: var(--text);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    ::selection {
+      background: rgba(10, 132, 255, 0.35);
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--accent-hi);
+      outline-offset: 3px;
+      border-radius: 4px;
+    }
+
+    .wrap {
+      max-width: 1020px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    code {
+      font-family: var(--mono);
+      font-size: 0.9em;
+      padding: 0.1em 0.4em;
+      border: 1px solid var(--edge-soft);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    /* ── Nav ─────────────────────────────────────────────── */
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 22px 0;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.1px;
+      text-decoration: none;
+    }
+
+    .mark {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(0, 0, 0, 0.5);
+      border-radius: 9px;
+      background: linear-gradient(180deg, var(--key-hi), var(--key-lo));
+      box-shadow: inset 0 1px 0 var(--key-edge), 0 2px 4px rgba(0, 0, 0, 0.35);
+      color: var(--accent-hi);
+    }
+
+    .mark svg,
+    .k-ico {
+      flex: 0 0 auto;
+    }
+
+    svg {
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-links a {
+      padding: 8px 12px;
+      border-radius: 10px;
+      color: var(--muted);
+      font-size: 13.5px;
+      font-weight: 550;
+      text-decoration: none;
+      transition: color 130ms ease, background-color 130ms ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    /* ── Keys (shared button language with the app) ──────── */
+
+    .key {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: 44px;
+      padding: 0 18px;
+      border: 1px solid rgba(0, 0, 0, 0.55);
+      border-radius: 13px;
+      background: linear-gradient(180deg, var(--key-hi), var(--key-lo));
+      box-shadow: inset 0 1px 0 var(--key-edge), 0 2px 5px rgba(0, 0, 0, 0.4);
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 620;
+      text-decoration: none;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: filter 140ms ease, transform 60ms ease;
+    }
+
+    .key:hover {
+      filter: brightness(1.13);
+    }
+
+    .key:active {
+      transform: translateY(1px);
+      filter: brightness(0.94);
+    }
+
+    .key-primary {
+      background: linear-gradient(180deg, #2f8cf5, #0a6ee0);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 2px 10px rgba(10, 132, 255, 0.35);
+      color: #fff;
+    }
+
+    .key small {
+      font-weight: 500;
+      opacity: 0.75;
+    }
+
+    /* ── Hero ────────────────────────────────────────────── */
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+      align-items: center;
+      gap: 56px;
+      padding: 64px 0 88px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 22px;
+      padding: 7px 12px;
+      border: 1px solid var(--edge-soft);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .eyebrow b {
+      color: var(--danger);
+      font-weight: 600;
+    }
+
+    h1 {
+      font-size: clamp(38px, 5.2vw, 54px);
+      font-weight: 750;
+      letter-spacing: -1.6px;
+      line-height: 1.04;
+      text-wrap: balance;
+    }
+
+    h1 .dim {
+      color: var(--subtle);
+    }
+
+    .hero-sub {
+      max-width: 46ch;
+      margin-top: 20px;
+      color: var(--muted);
+      font-size: 16.5px;
+      line-height: 1.6;
+      text-wrap: pretty;
+    }
+
+    .hero-sub code {
+      white-space: nowrap;
+    }
+
+    .hero-cta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      margin-top: 30px;
+    }
+
+    .hero-meta {
+      margin-top: 18px;
+      color: var(--subtle);
+      font-size: 12.5px;
+      letter-spacing: 0.1px;
+    }
+
+    .hero-meta span {
+      color: var(--muted);
+    }
+
+    /* ── Panel demo (live mock of the app) ───────────────── */
+
+    .stage {
+      position: relative;
+    }
+
+    .panel {
+      position: relative;
+      width: min(360px, 100%);
+      height: 500px;
+      margin-left: auto;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid rgba(0, 0, 0, 0.6);
+      border-radius: 22px;
+      background: linear-gradient(180deg, var(--shell-hi), var(--shell) 110px, var(--shell-lo));
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.13),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.4),
+        0 30px 80px rgba(0, 0, 0, 0.6);
+    }
+
+    .p-head {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 14px 15px 9px;
+    }
+
+    .p-head .mark {
+      width: 27px;
+      height: 27px;
+      border-radius: 8px;
+    }
+
+    .p-head b {
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .p-head small {
+      display: block;
+      color: var(--subtle);
+      font-size: 9.5px;
+    }
+
+    .p-screen {
+      margin: 3px 13px 0;
+      padding: 12px 13px 11px;
+      border: 1px solid rgba(0, 0, 0, 0.7);
+      border-radius: 14px;
+      background: radial-gradient(130% 100% at 50% 0%, #16161a, var(--screen) 65%);
+      box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.65), 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .p-label {
+      color: var(--subtle);
+      font-size: 8.5px;
+      font-weight: 650;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+
+    .p-screen-row {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .p-value {
+      margin-top: 4px;
+      color: var(--success);
+      font-size: 26px;
+      font-weight: 720;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.5px;
+      line-height: 1;
+      text-shadow: 0 0 16px rgba(48, 209, 88, 0.3);
+    }
+
+    .p-count {
+      color: var(--muted);
+      font-size: 10.5px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .p-status {
+      margin-top: 9px;
+      color: var(--subtle);
+      font-family: var(--mono);
+      font-size: 9.5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .p-track {
+      height: 3px;
+      margin-top: 7px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.09);
+    }
+
+    .p-track span {
+      display: block;
+      width: 36%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, transparent, var(--accent-hi), var(--accent));
+      opacity: 0;
+    }
+
+    .panel.is-scanning .p-track span {
+      opacity: 1;
+      animation: track 1.3s ease-in-out infinite;
+    }
+
+    .p-keys {
+      display: grid;
+      grid-template-columns: 1fr 1.3fr 1fr;
+      gap: 8px;
+      padding: 11px 13px 3px;
+    }
+
+    .p-key {
+      height: 32px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(0, 0, 0, 0.55);
+      border-radius: 10px;
+      background: linear-gradient(180deg, var(--key-hi), var(--key-lo));
+      box-shadow: inset 0 1px 0 var(--key-edge), 0 2px 4px rgba(0, 0, 0, 0.35);
+      font-size: 10.5px;
+      font-weight: 620;
+    }
+
+    .p-key.blue {
+      background: linear-gradient(180deg, #2f8cf5, #0a6ee0);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 2px 6px rgba(10, 132, 255, 0.3);
+      color: #fff;
+    }
+
+    .p-list-wrap {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+    }
+
+    .p-list {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      padding: 10px 13px 4px;
+    }
+
+    .p-list-empty {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 30px;
+      color: var(--subtle);
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 220ms ease;
+    }
+
+    .p-list-empty.on {
+      opacity: 1;
+    }
+
+    .p-list-empty svg {
+      opacity: 0.55;
+    }
+
+    .p-list-empty span {
+      font-size: 10.5px;
+      font-weight: 620;
+      line-height: 1.4;
+    }
+
+    .p-row {
+      display: grid;
+      grid-template-columns: 14px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      padding: 8px 9px;
+      border: 1px solid rgba(10, 132, 255, 0.4);
+      border-radius: 10px;
+      background: rgba(10, 132, 255, 0.09);
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 220ms ease, transform 220ms ease, filter 300ms ease;
+    }
+
+    .p-row.on {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .p-row.gone {
+      opacity: 0;
+      filter: blur(2px);
+    }
+
+    .p-check {
+      width: 13px;
+      height: 13px;
+      display: grid;
+      place-items: center;
+      border-radius: 4px;
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .p-name {
+      font-size: 11px;
+      font-weight: 650;
+      line-height: 1.2;
+    }
+
+    .p-path {
+      color: var(--subtle);
+      font-family: var(--mono);
+      font-size: 8.5px;
+    }
+
+    .p-size {
+      font-size: 10.5px;
+      font-weight: 680;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .p-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 13px 14px;
+      border-top: 1px solid rgba(0, 0, 0, 0.45);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    .p-foot small {
+      color: var(--subtle);
+      font-size: 9.5px;
+    }
+
+    .p-foot b {
+      display: block;
+      font-size: 10.5px;
+    }
+
+    .p-purge {
+      height: 32px;
+      padding: 0 14px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(0, 0, 0, 0.55);
+      border-radius: 10px;
+      background: linear-gradient(180deg, #f2564c, #d92c22);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.26), 0 2px 6px rgba(255, 69, 58, 0.3);
+      color: #fff;
+      font-size: 10.5px;
+      font-weight: 650;
+      transition: transform 80ms ease, filter 80ms ease;
+    }
+
+    .panel.is-purging .p-purge {
+      transform: translateY(1px);
+      filter: brightness(0.9);
+    }
+
+    /* ── Sections ────────────────────────────────────────── */
+
+    .section {
+      padding: 30px 0 84px;
+    }
+
+    .section-head {
+      max-width: 56ch;
+      margin-bottom: 40px;
+    }
+
+    h2 {
+      font-size: clamp(24px, 3.2vw, 32px);
+      font-weight: 720;
+      letter-spacing: -0.8px;
+      line-height: 1.15;
+      text-wrap: balance;
+    }
+
+    .section-head p {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 15px;
+      text-wrap: pretty;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .feature {
+      position: relative;
+      padding: 16px 17px 20px;
+      border: 1px solid var(--edge-soft);
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.015));
+      overflow: hidden;
+      transition: border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+    }
+
+    .feature:hover {
+      transform: translateY(-3px);
+      border-color: rgba(10, 132, 255, 0.38);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.35);
+    }
+
+    .feature h3 {
+      font-size: 14.5px;
+      font-weight: 680;
+      letter-spacing: -0.1px;
+    }
+
+    .feature p {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 12.8px;
+      line-height: 1.55;
+    }
+
+    .feature p code {
+      font-size: 0.88em;
+    }
+
+    /* Shared "module screen" each feature renders its live visualization in */
+    .f-screen {
+      height: 76px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(0, 0, 0, 0.65);
+      border-radius: 11px;
+      background: radial-gradient(120% 140% at 50% 0%, #17171a, var(--screen) 72%);
+      box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6), 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    /* 1. Live scanning — rotating radar sweep with blips */
+    .f-radar {
+      position: relative;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+    }
+
+    .f-radar::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 1px solid rgba(10, 132, 255, 0.22);
+      box-shadow: inset 0 0 0 9px rgba(10, 132, 255, 0.07), inset 0 0 0 18px rgba(10, 132, 255, 0.05);
+    }
+
+    .f-radar-sweep {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, transparent 0deg, rgba(71, 161, 255, 0.65) 16deg, transparent 42deg);
+      animation: radar-spin 3.2s linear infinite;
+    }
+
+    .f-radar-dot {
+      position: absolute;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--accent-hi);
+      box-shadow: 0 0 6px rgba(10, 132, 255, 0.8);
+      opacity: 0;
+      animation: radar-blip 3.2s ease-in-out infinite;
+    }
+
+    .f-radar-dot:nth-child(2) {
+      top: 12px;
+      left: 32px;
+      animation-delay: 0.3s;
+    }
+
+    .f-radar-dot:nth-child(3) {
+      top: 29px;
+      left: 10px;
+      animation-delay: 1.3s;
+    }
+
+    .f-radar-dot:nth-child(4) {
+      top: 37px;
+      left: 33px;
+      animation-delay: 2.2s;
+    }
+
+    .feature:hover .f-radar-sweep {
+      animation-duration: 1.3s;
+    }
+
+    /* 2. Guard-railed deletes — allow/block path chips */
+    .f-guard {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: 100%;
+      padding: 0 15px;
+    }
+
+    .f-chip {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 8px;
+      border-radius: 7px;
+      font-family: var(--mono);
+      font-size: 9.5px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .f-chip .g-mark {
+      font-size: 10px;
+      line-height: 1;
+    }
+
+    .f-chip.allow {
+      border: 1px solid rgba(48, 209, 88, 0.4);
+      background: rgba(48, 209, 88, 0.08);
+      color: #8bf0a4;
+    }
+
+    .f-chip.block {
+      border: 1px solid rgba(255, 69, 58, 0.35);
+      background: rgba(255, 69, 58, 0.07);
+      color: #ff9d97;
+      animation: guard-flash 3.6s ease-in-out infinite;
+    }
+
+    .feature:hover .f-chip.block {
+      animation-duration: 1.4s;
+    }
+
+    /* 3. Menu-bar native — tray icon pops a dropdown */
+    .f-tray {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    .f-tray-bar {
+      position: absolute;
+      top: 11px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 78px;
+      height: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 0 5px;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .f-tray-icon {
+      width: 7px;
+      height: 7px;
+      border-radius: 2px;
+      background: var(--accent-hi);
+      animation: tray-pop 3s ease-in-out infinite;
+    }
+
+    .f-tray-panel {
+      position: absolute;
+      top: 25px;
+      left: 50%;
+      width: 60px;
+      height: 27px;
+      border: 1px solid rgba(0, 0, 0, 0.5);
+      border-radius: 7px;
+      background: linear-gradient(180deg, var(--shell-hi), var(--shell-lo));
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+      transform: translateX(-50%) scaleY(0);
+      transform-origin: top center;
+      opacity: 0;
+      animation: tray-drop 3s ease-in-out infinite;
+    }
+
+    .feature:hover .f-tray-panel,
+    .feature:hover .f-tray-icon {
+      animation-duration: 1.5s;
+    }
+
+    /* 4. Fast where it counts — live-ticking throughput gauge */
+    .f-speed {
+      width: 100%;
+      padding: 0 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .f-speed-num {
+      font-family: var(--mono);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent-hi);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.2px;
+    }
+
+    .f-speed-num small {
+      margin-left: 4px;
+      color: var(--subtle);
+      font-size: 8.5px;
+      font-weight: 650;
+    }
+
+    .f-speed-bar {
+      width: 100%;
+      height: 4px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .f-speed-bar span {
+      display: block;
+      height: 100%;
+      width: 25%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), var(--accent-hi));
+      animation: speed-scrub 2.4s ease-in-out infinite;
+    }
+
+    .feature:hover .f-speed-bar span {
+      animation-duration: 1s;
+    }
+
+    /* 5. Rebuildable by design — folder deleted ⇄ restored crossfade */
+    .f-rebuild {
+      position: relative;
+      width: 32px;
+      height: 32px;
+    }
+
+    .f-rebuild svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .f-rebuild .r-del {
+      color: var(--danger);
+      animation: rebuild-del 4s ease-in-out infinite;
+    }
+
+    .f-rebuild .r-add {
+      color: var(--success);
+      opacity: 0;
+      animation: rebuild-add 4s ease-in-out infinite;
+    }
+
+    .feature:hover .f-rebuild .r-del,
+    .feature:hover .f-rebuild .r-add {
+      animation-duration: 1.8s;
+    }
+
+    /* 6. Free & open source — typing terminal */
+    .f-term {
+      width: 100%;
+      padding: 0 13px;
+    }
+
+    .f-term-bar {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 7px;
+    }
+
+    .f-term-bar span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.16);
+    }
+
+    .f-term-line {
+      display: inline-block;
+      width: 0ch;
+      overflow: hidden;
+      border-right: 2px solid rgba(48, 209, 88, 0.7);
+      white-space: nowrap;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--success);
+      animation: term-type 4.5s steps(21, end) infinite, term-caret 0.8s step-end infinite;
+    }
+
+    .feature:hover .f-term-line {
+      animation-duration: 2.2s, 0.8s;
+    }
+
+    /* ── Downloads ───────────────────────────────────────── */
+
+    .dl-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .dl-grid--secondary {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .dl-card {
+      display: flex;
+      flex-direction: column;
+      padding: 22px 20px 20px;
+      border: 1px solid var(--edge-soft);
+      border-radius: 18px;
+      background: linear-gradient(180deg, var(--shell), var(--shell-lo));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 14px 34px rgba(0, 0, 0, 0.35);
+    }
+
+    .dl-os {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+
+    .dl-os h3 {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+    }
+
+    .dl-badge {
+      margin-left: auto;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(10, 132, 255, 0.15);
+      border: 1px solid rgba(10, 132, 255, 0.4);
+      color: var(--accent-hi);
+      font-size: 10px;
+      font-weight: 650;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+
+    .dl-req {
+      color: var(--subtle);
+      font-size: 12px;
+      margin-bottom: 16px;
+    }
+
+    .dl-actions {
+      display: grid;
+      gap: 9px;
+      margin-top: auto;
+    }
+
+    .dl-actions .key {
+      height: 42px;
+      font-size: 13.5px;
+      justify-content: space-between;
+    }
+
+    .dl-actions .key .k-ext {
+      color: rgba(255, 255, 255, 0.6);
+      font-family: var(--mono);
+      font-size: 10.5px;
+      font-weight: 500;
+    }
+
+    .dl-actions .key-primary .k-ext {
+      color: rgba(255, 255, 255, 0.75);
+    }
+
+    .dl-alt {
+      margin-top: 13px;
+      color: var(--subtle);
+      font-size: 11.5px;
+    }
+
+    .dl-alt a {
+      color: var(--muted);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .dl-alt a:hover {
+      color: var(--text);
+    }
+
+    /* Primary card: the detected platform, front and center */
+    .dl-primary {
+      display: flex;
+      justify-content: center;
+    }
+
+    .dl-primary .dl-card {
+      width: 100%;
+      max-width: 480px;
+      padding: 30px 32px 28px;
+      border-color: rgba(10, 132, 255, 0.4);
+      background: linear-gradient(180deg, #26262a, var(--shell-lo));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 22px 50px rgba(0, 0, 0, 0.45);
+    }
+
+    .dl-primary .dl-os svg {
+      width: 26px;
+      height: 26px;
+    }
+
+    .dl-primary .dl-os h3 {
+      font-size: 20px;
+    }
+
+    .dl-primary .dl-req {
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+
+    .dl-primary .dl-actions {
+      grid-auto-flow: column;
+      grid-auto-columns: 1fr;
+    }
+
+    .dl-primary .dl-actions .key {
+      height: 48px;
+      font-size: 14.5px;
+    }
+
+    .dl-primary .dl-badge {
+      background: rgba(10, 132, 255, 0.18);
+    }
+
+    /* Toggle that reveals the other platforms */
+    .dl-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      width: 100%;
+      margin-top: 22px;
+      padding: 12px;
+      border: 1px dashed var(--edge);
+      border-radius: 12px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 580;
+      cursor: pointer;
+      transition: border-color 140ms ease, color 140ms ease, background-color 140ms ease;
+    }
+
+    .dl-toggle:hover {
+      border-color: var(--edge);
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .dl-toggle svg {
+      transition: transform 220ms ease;
+    }
+
+    .dl-toggle.is-open svg {
+      transform: rotate(180deg);
+    }
+
+    /* Secondary reveal: animated via the grid-rows trick so height transitions without JS measuring */
+    .dl-secondary {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 320ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .dl-secondary.is-open {
+      grid-template-rows: 1fr;
+    }
+
+    .dl-secondary-inner {
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .dl-secondary-inner .dl-grid {
+      margin-top: 16px;
+    }
+
+    .dl-card.is-compact {
+      padding: 16px 17px 15px;
+    }
+
+    .dl-card.is-compact .dl-os h3 {
+      font-size: 14px;
+    }
+
+    .dl-card.is-compact .dl-os svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .dl-card.is-compact .dl-req {
+      font-size: 11px;
+      margin-bottom: 12px;
+    }
+
+    .dl-card.is-compact .dl-actions .key {
+      height: 36px;
+      font-size: 12px;
+    }
+
+    .dl-card.is-compact .dl-alt {
+      margin-top: 10px;
+      font-size: 11px;
+    }
+
+    .dl-foot {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 26px;
+      padding: 16px 19px;
+      border: 1px solid var(--edge-soft);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.025);
+      color: var(--muted);
+      font-size: 12.5px;
+    }
+
+    .dl-foot code {
+      white-space: nowrap;
+    }
+
+    .dl-foot a {
+      color: var(--text);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .dl-foot a:hover {
+      color: var(--accent-hi);
+    }
+
+    /* ── Footer ──────────────────────────────────────────── */
+
+    .footer {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 26px 0 36px;
+      border-top: 1px solid var(--edge-soft);
+      color: var(--subtle);
+      font-size: 12.5px;
+    }
+
+    .footer nav {
+      display: flex;
+      gap: 18px;
+    }
+
+    .footer a {
+      color: var(--muted);
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      color: var(--text);
+    }
+
+    /* ── Motion & responsive ─────────────────────────────── */
+
+    @keyframes track {
+      0% {
+        transform: translateX(-110%);
+      }
+
+      100% {
+        transform: translateX(300%);
+      }
+    }
+
+    @keyframes radar-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes radar-blip {
+
+      0%,
+      92%,
+      100% {
+        opacity: 0;
+        transform: scale(0.6);
+      }
+
+      6%,
+      14% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    @keyframes guard-flash {
+
+      0%,
+      55%,
+      100% {
+        box-shadow: none;
+      }
+
+      60%,
+      72% {
+        box-shadow: 0 0 0 2px rgba(255, 69, 58, 0.32);
+      }
+    }
+
+    @keyframes tray-pop {
+
+      0%,
+      20%,
+      100% {
+        transform: scale(1);
+      }
+
+      8% {
+        transform: scale(1.35);
+      }
+    }
+
+    @keyframes tray-drop {
+
+      0%,
+      18% {
+        transform: translateX(-50%) scaleY(0);
+        opacity: 0;
+      }
+
+      26%,
+      70% {
+        transform: translateX(-50%) scaleY(1);
+        opacity: 1;
+      }
+
+      84%,
+      100% {
+        transform: translateX(-50%) scaleY(0);
+        opacity: 0;
+      }
+    }
+
+    @keyframes speed-scrub {
+
+      0%,
+      100% {
+        width: 22%;
+      }
+
+      50% {
+        width: 84%;
+      }
+    }
+
+    @keyframes rebuild-del {
+
+      0%,
+      38% {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+      }
+
+      50%,
+      100% {
+        opacity: 0;
+        transform: scale(0.7) rotate(-10deg);
+      }
+    }
+
+    @keyframes rebuild-add {
+
+      0%,
+      38% {
+        opacity: 0;
+        transform: scale(0.7) rotate(10deg);
+      }
+
+      55%,
+      92% {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+      }
+
+      100% {
+        opacity: 0;
+      }
+    }
+
+    @keyframes term-type {
+
+      0%,
+      4% {
+        width: 0ch;
+      }
+
+      55%,
+      78% {
+        width: 21ch;
+      }
+
+      92%,
+      100% {
+        width: 0ch;
+      }
+    }
+
+    @keyframes term-caret {
+      50% {
+        border-color: transparent;
+      }
+    }
+
+    @media (max-width: 880px) {
+      .hero {
+        grid-template-columns: 1fr;
+        gap: 48px;
+        padding-top: 40px;
+      }
+
+      .panel {
+        margin: 0 auto;
+      }
+
+      .features,
+      .dl-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .dl-primary .dl-actions {
+        grid-auto-flow: row;
+      }
+
+      .nav-links a.nav-plain {
+        display: none;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 1ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header class="nav">
+      <a class="nav-brand" href="#">
+        <span class="mark" aria-hidden="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+            <path d="M4 7h16" />
+            <path d="M7 7l1 13h8l1-13" />
+            <path d="M9 7V4h6v3" />
+            <path d="M10 12h4" />
+            <path d="M10 16h4" />
+          </svg>
+        </span>
+        NodeMinus
+      </a>
+      <nav class="nav-links">
+        <a class="nav-plain" href="#features">Features</a>
+        <a class="nav-plain" data-github href="https://github.com/abhinavcdev/nodeminus">GitHub</a>
+        <a class="key key-primary" style="height: 38px; font-size: 13px;" href="#download">Download</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div>
+          <p class="eyebrow">$ du -sh node_modules/ <b>&nbsp;— heavier than you think</b></p>
+          <h1>Delete <span class="dim">node_modules.</span><br />Get your disk back.</h1>
+          <p class="hero-sub">
+            NodeMinus sits in your menu bar, finds every dependency folder on your machine,
+            and purges the ones you pick — gigabytes back in seconds. Everything it deletes
+            is rebuildable with <code>npm install</code>.
+          </p>
+          <div class="hero-cta">
+            <a class="key key-primary" id="hero-download" href="#download">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 4v11" />
+                <path d="M7 11l5 5 5-5" />
+                <path d="M5 20h14" />
+              </svg>
+              <span id="hero-download-label">Download NodeMinus</span>
+            </a>
+            <a class="key" data-github href="https://github.com/abhinavcdev/nodeminus">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M15 22v-3.2c0-.9-.3-1.6-.8-2.1 2.6-.3 5.3-1.3 5.3-5.8 0-1.3-.4-2.3-1.2-3.2.1-.3.5-1.5-.1-3.1 0 0-1-.3-3.2 1.2a11 11 0 0 0-5.8 0C7 4.3 6 4.6 6 4.6c-.6 1.6-.2 2.8-.1 3.1-.8.9-1.2 2-1.2 3.2 0 4.5 2.7 5.5 5.3 5.8-.4.4-.7 1-.8 1.8v3.5" />
+              </svg>
+              View on GitHub
+            </a>
+          </div>
+          <p class="hero-meta">
+            <span id="version-badge">v0.1.0</span> · Free &amp; open source · macOS, Windows &amp; Linux · ~5 MB native
+            app
+          </p>
+        </div>
+
+        <div class="stage" aria-hidden="true">
+          <div class="panel" id="demo-panel">
+            <div class="p-head">
+              <span class="mark">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 7h16" />
+                  <path d="M7 7l1 13h8l1-13" />
+                  <path d="M9 7V4h6v3" />
+                </svg>
+              </span>
+              <div><b>NodeMinus</b><small>node_modules cleanup</small></div>
+            </div>
+            <div class="p-screen">
+              <div class="p-screen-row">
+                <div>
+                  <span class="p-label">Reclaimable</span>
+                  <div class="p-value" id="demo-total">0 B</div>
+                </div>
+                <div class="p-count"><span id="demo-count">0</span> projects</div>
+              </div>
+              <div class="p-status" id="demo-status">~/dev · ready to scan</div>
+              <div class="p-track"><span></span></div>
+            </div>
+            <div class="p-keys">
+              <div class="p-key">Folder</div>
+              <div class="p-key blue" id="demo-scan-key">Scan</div>
+              <div class="p-key">Select all</div>
+            </div>
+            <div class="p-list-wrap">
+              <div class="p-list" id="demo-list"></div>
+              <div class="p-list-empty" id="demo-list-empty">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="M21 21l-4.3-4.3" />
+                </svg>
+                <span>Ready when you are</span>
+              </div>
+            </div>
+            <div class="p-foot">
+              <div><b id="demo-foot-b">Nothing selected</b><small id="demo-foot-s">Scan to find candidates</small></div>
+              <div class="p-purge">Purge selected</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="features">
+        <div class="section-head">
+          <h2>Built like an instrument, not a chore.</h2>
+          <p>One job — find rebuildable dependency bloat and remove it safely — done with the
+            precision of a native utility.</p>
+        </div>
+        <div class="features">
+          <div class="feature">
+            <div class="f-screen">
+              <div class="f-radar">
+                <div class="f-radar-sweep"></div>
+                <span class="f-radar-dot"></span>
+                <span class="f-radar-dot"></span>
+                <span class="f-radar-dot"></span>
+              </div>
+            </div>
+            <h3>Live scanning</h3>
+            <p>Projects stream in the moment they're found, sorted by reclaimable space — no waiting for the full walk
+              to finish.</p>
+          </div>
+          <div class="feature">
+            <div class="f-screen">
+              <div class="f-guard">
+                <span class="f-chip allow"><span class="g-mark">✓</span> node_modules</span>
+                <span class="f-chip block"><span class="g-mark">✕</span> src/</span>
+              </div>
+            </div>
+            <h3>Guard-railed deletes</h3>
+            <p>The engine refuses to remove anything that isn't literally named <code>node_modules</code> — enforced in
+              Rust, not just the UI.</p>
+          </div>
+          <div class="feature">
+            <div class="f-screen">
+              <div class="f-tray">
+                <div class="f-tray-bar"><span class="f-tray-icon"></span></div>
+                <div class="f-tray-panel"></div>
+              </div>
+            </div>
+            <h3>Menu-bar native</h3>
+            <p>A tiny Rust + Tauri tray app — a few megabytes, no Electron, no dock clutter. One click and it's there;
+              Esc and it's gone.</p>
+          </div>
+          <div class="feature">
+            <div class="f-screen">
+              <div class="f-speed">
+                <div class="f-speed-num"><span id="speed-counter-value">8,200</span><small>files/s</small></div>
+                <div class="f-speed-bar"><span></span></div>
+              </div>
+            </div>
+            <h3>Fast where it counts</h3>
+            <p>A parallel directory walker skips system folders and nested duplicates, so scanning an entire home
+              directory stays quick.</p>
+          </div>
+          <div class="feature">
+            <div class="f-screen">
+              <div class="f-rebuild">
+                <svg class="r-del" viewBox="0 0 24 24" fill="none">
+                  <path d="M3 7.5a2 2 0 0 1 2-2h4.4l2 2H19a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9Z" />
+                  <path d="M8 13h8" />
+                </svg>
+                <svg class="r-add" viewBox="0 0 24 24" fill="none">
+                  <path d="M21 12a9 9 0 1 1-2.6-6.4" />
+                  <path d="M21 3v6h-6" />
+                </svg>
+              </div>
+            </div>
+            <h3>Rebuildable by design</h3>
+            <p>node_modules is a cache, not your code. Anything you purge comes back with <code>npm install</code> —
+              nothing else is touched.</p>
+          </div>
+          <div class="feature">
+            <div class="f-screen">
+              <div class="f-term">
+                <div class="f-term-bar"><span></span><span></span><span></span></div>
+                <div class="f-term-line">$ git clone nodeminus</div>
+              </div>
+            </div>
+            <h3>Free &amp; open source</h3>
+            <p>MIT licensed, auditable, and built in the open. Read the scanner before you trust it with your disk — we
+              insist.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="download">
+        <div class="section-head">
+          <h2>Download NodeMinus</h2>
+          <p id="download-sub">Direct downloads are served from our CDN. Every build is also published on
+            <a data-github href="https://github.com/abhinavcdev/nodeminus" style="color: var(--text);">GitHub
+              Releases</a>
+            with checksums.
+          </p>
+        </div>
+
+        <div class="dl-primary" id="dl-primary"></div>
+
+        <button class="dl-toggle" id="dl-toggle" type="button" aria-expanded="false" aria-controls="dl-secondary"
+          hidden>
+          <span id="dl-toggle-label">Other platforms</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </button>
+
+        <div class="dl-secondary" id="dl-secondary">
+          <div class="dl-secondary-inner">
+            <div class="dl-grid dl-grid--secondary" id="dl-secondary-grid">
+              <div class="dl-card" data-os="mac">
+                <div class="dl-os">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M16.7 13.3c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.9-1.6 0-3.2 1-4 2.4-1.7 3-.4 7.5 1.2 9.9.8 1.2 1.8 2.5 3.1 2.5 1.2-.1 1.7-.8 3.2-.8s1.9.8 3.2.8c1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8-.1 0-2.6-1-2.7-4Z" />
+                    <path d="M14.4 5.9c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.9-1 2.9 1.1.1 2.2-.6 2.8-1.4Z" />
+                  </svg>
+                  <h3>macOS</h3>
+                  <span class="dl-badge" data-detected hidden>Recommended</span>
+                </div>
+                <p class="dl-req">macOS 11+ · universal experience, native builds</p>
+                <div class="dl-actions">
+                  <a class="key key-primary" data-dl="macos-arm64">
+                    <span>Apple Silicon</span><span class="k-ext">.dmg</span>
+                  </a>
+                  <a class="key" data-dl="macos-x64">
+                    <span>Intel</span><span class="k-ext">.dmg</span>
+                  </a>
+                </div>
+                <p class="dl-alt">or grab it from <a data-github-latest href="#">GitHub Releases</a></p>
+              </div>
+
+              <div class="dl-card" data-os="windows">
+                <div class="dl-os">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M3 5.5l7.5-1v7H3v-6Z" />
+                    <path d="M12.5 4.3L21 3v8.5h-8.5V4.3Z" />
+                    <path d="M3 12.5h7.5v7L3 18.5v-6Z" />
+                    <path d="M12.5 12.5H21V21l-8.5-1.3v-7.2Z" />
+                  </svg>
+                  <h3>Windows</h3>
+                  <span class="dl-badge" data-detected hidden>Recommended</span>
+                </div>
+                <p class="dl-req">Windows 10/11 · 64-bit installer</p>
+                <div class="dl-actions">
+                  <a class="key key-primary" data-dl="windows-x64">
+                    <span>Installer</span><span class="k-ext">.exe</span>
+                  </a>
+                </div>
+                <p class="dl-alt">or grab it from <a data-github-latest href="#">GitHub Releases</a></p>
+              </div>
+
+              <div class="dl-card" data-os="linux">
+                <div class="dl-os">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M12 2c-2.2 0-3.5 1.6-3.5 4 0 1.6.3 2.4-.6 3.9-1.4 2-2.9 4-2.9 6.1 0 1.7 1 3 2.6 3l.9 1.5c.6.8 2 1.5 3.5 1.5s2.9-.7 3.5-1.5l.9-1.5c1.6 0 2.6-1.3 2.6-3 0-2.1-1.5-4.1-2.9-6.1-.9-1.5-.6-2.3-.6-3.9 0-2.4-1.3-4-3.5-4Z" />
+                    <path d="M9.8 8.5h.01" />
+                    <path d="M14.2 8.5h.01" />
+                  </svg>
+                  <h3>Linux</h3>
+                  <span class="dl-badge" data-detected hidden>Recommended</span>
+                </div>
+                <p class="dl-req">x86_64 · AppImage runs anywhere, .deb for Debian/Ubuntu</p>
+                <div class="dl-actions">
+                  <a class="key key-primary" data-dl="linux-appimage">
+                    <span>AppImage</span><span class="k-ext">.AppImage</span>
+                  </a>
+                  <a class="key" data-dl="linux-deb">
+                    <span>Debian / Ubuntu</span><span class="k-ext">.deb</span>
+                  </a>
+                </div>
+                <p class="dl-alt">or grab it from <a data-github-latest href="#">GitHub Releases</a></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dl-foot">
+          <span>Verify any download: <code>shasum -a 256 NodeMinus-*</code> against <a data-sums
+              href="#">SHA256SUMS.txt</a></span>
+          <a data-github-latest href="#">All releases &amp; changelogs →</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>© 2026 NodeMinus · MIT License · Built with Rust &amp; Tauri</span>
+      <nav>
+        <a data-github href="https://github.com/abhinavcdev/nodeminus">GitHub</a>
+        <a data-github-issues href="#">Report an issue</a>
+        <a href="#download">Download</a>
+      </nav>
+    </footer>
+  </div>
+
+  <script>
+    // ── Release configuration ─────────────────────────────────────
+    // DOWNLOAD_BASE: your R2 public hostname — either the bucket's custom
+    // domain (recommended, e.g. https://dl.nodeminus.app) or its r2.dev URL
+    // (https://pub-<hash>.r2.dev). The release workflow uploads stable-named
+    // artifacts under /latest/ and a version manifest at /latest.json.
+    const DOWNLOAD_BASE = "https://dl.nodeminus.app";
+    const GITHUB_REPO = "abhinavcdev/nodeminus";
+    const FALLBACK_VERSION = "v0.1.0";
+
+    const FILES = {
+      "macos-arm64": "NodeMinus-macos-arm64.dmg",
+      "macos-x64": "NodeMinus-macos-x64.dmg",
+      "windows-x64": "NodeMinus-windows-x64-setup.exe",
+      "linux-appimage": "NodeMinus-linux-x86_64.AppImage",
+      "linux-deb": "NodeMinus-linux-amd64.deb",
+    };
+
+    // Wire download + GitHub links.
+    document.querySelectorAll("[data-dl]").forEach((el) => {
+      const file = FILES[el.getAttribute("data-dl")];
+      if (file) el.href = `${DOWNLOAD_BASE}/latest/${file}`;
+    });
+    document.querySelectorAll("[data-github]").forEach((el) => {
+      el.href = `https://github.com/${GITHUB_REPO}`;
+    });
+    document.querySelectorAll("[data-github-latest]").forEach((el) => {
+      el.href = `https://github.com/${GITHUB_REPO}/releases/latest`;
+    });
+    document.querySelectorAll("[data-github-issues]").forEach((el) => {
+      el.href = `https://github.com/${GITHUB_REPO}/issues`;
+    });
+    document.querySelectorAll("[data-sums]").forEach((el) => {
+      el.href = `${DOWNLOAD_BASE}/latest/SHA256SUMS.txt`;
+    });
+
+    // Show the live version if the manifest is reachable (needs CORS on the
+    // bucket when the site and downloads live on different origins).
+    fetch(`${DOWNLOAD_BASE}/latest.json`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((manifest) => {
+        if (manifest && manifest.version) {
+          document.getElementById("version-badge").textContent = `v${manifest.version}`;
+        }
+      })
+      .catch(() => { });
+
+    // Detect the visitor's OS once, then drive both the hero CTA label and
+    // the download section (show only the matching platform, collapse the
+    // rest behind a toggle). Falls back to showing every platform when the
+    // UA doesn't confidently match one of the three.
+    (function platformDownloads() {
+      const ua = navigator.userAgent;
+      const os = /Mac/i.test(ua) ? "mac" : /Win/i.test(ua) ? "windows" : /Linux|X11/i.test(ua) ? "linux" : null;
+      const OS_NAMES = { mac: "macOS", windows: "Windows", linux: "Linux" };
+
+      const heroLabel = document.getElementById("hero-download-label");
+      if (os) heroLabel.textContent = `Download for ${OS_NAMES[os]}`;
+
+      const primary = document.getElementById("dl-primary");
+      const secondary = document.getElementById("dl-secondary");
+      const secondaryGrid = document.getElementById("dl-secondary-grid");
+      const toggle = document.getElementById("dl-toggle");
+      const toggleLabel = document.getElementById("dl-toggle-label");
+      const sub = document.getElementById("download-sub");
+      const cards = [...secondaryGrid.querySelectorAll(".dl-card")];
+
+      if (!os) {
+        // Unknown platform (or a visitor on a phone/tablet) — show everything,
+        // full-size, with no toggle to hide behind.
+        secondary.classList.add("is-open");
+        return;
+      }
+
+      const primaryCard = cards.find((c) => c.dataset.os === os);
+      const otherCards = cards.filter((c) => c.dataset.os !== os);
+      if (!primaryCard) {
+        secondary.classList.add("is-open");
+        return;
+      }
+
+      primaryCard.classList.remove("is-compact");
+      const badge = primaryCard.querySelector("[data-detected]");
+      if (badge) badge.hidden = false;
+      primary.appendChild(primaryCard);
+
+      otherCards.forEach((c) => c.classList.add("is-compact"));
+      secondaryGrid.style.gridTemplateColumns =
+        otherCards.length > 1 ? "" : "1fr";
+
+      sub.innerHTML = `We've picked the ${OS_NAMES[os]} build for you based on your device. Every release is also published on
+        <a data-github href="https://github.com/${GITHUB_REPO}" style="color: var(--text);">GitHub Releases</a> with checksums.`;
+
+      if (otherCards.length > 0) {
+        toggle.hidden = false;
+        toggleLabel.textContent = `Also available for ${otherCards
+          .map((c) => OS_NAMES[c.dataset.os])
+          .join(" & ")}`;
+
+        toggle.addEventListener("click", () => {
+          const open = toggle.classList.toggle("is-open");
+          secondary.classList.toggle("is-open", open);
+          toggle.setAttribute("aria-expanded", String(open));
+          toggleLabel.textContent = open
+            ? "Hide other platforms"
+            : `Also available for ${otherCards.map((c) => OS_NAMES[c.dataset.os]).join(" & ")}`;
+        });
+      }
+    })();
+
+    // ── Feature module: live-ticking throughput counter ────────────
+    (function speedCounter() {
+      const el = document.getElementById("speed-counter-value");
+      if (!el) return;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+      let value = 8200;
+      window.setInterval(() => {
+        value += Math.random() * 1400 - 500;
+        value = Math.max(6200, Math.min(15600, value));
+        el.textContent = Math.round(value).toLocaleString("en-US");
+      }, 850);
+    })();
+
+    // ── Hero demo: scan → select → purge loop ─────────────────────
+    (function heroDemo() {
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const panel = document.getElementById("demo-panel");
+      const list = document.getElementById("demo-list");
+      const listEmpty = document.getElementById("demo-list-empty");
+      const totalEl = document.getElementById("demo-total");
+      const countEl = document.getElementById("demo-count");
+      const statusEl = document.getElementById("demo-status");
+      const footB = document.getElementById("demo-foot-b");
+      const footS = document.getElementById("demo-foot-s");
+
+      const PROJECTS = [
+        { name: "acme-web", path: "~/dev/acme-web", gb: 4.2 },
+        { name: "api-server", path: "~/dev/acme-api", gb: 2.8 },
+        { name: "design-system", path: "~/dev/design-system", gb: 1.9 },
+        { name: "weekend-idea", path: "~/dev/experiments", gb: 1.1 },
+      ];
+      const TOTAL = PROJECTS.reduce((s, p) => s + p.gb, 0);
+
+      function rowHTML(p) {
+        return `<span class="p-check"><svg width="9" height="9" viewBox="0 0 24 24" fill="none"><path d="M4 12l5 5L20 6"/></svg></span>
+          <span><span class="p-name">${p.name}</span><br/><span class="p-path">${p.path}</span></span>
+          <span class="p-size">${p.gb.toFixed(1)} GB</span>`;
+      }
+
+      function syncEmptyState() {
+        listEmpty.classList.toggle("on", list.children.length === 0);
+      }
+
+      function setStatic() {
+        panel.classList.remove("is-scanning", "is-purging");
+        list.innerHTML = "";
+        PROJECTS.forEach((p) => {
+          const row = document.createElement("div");
+          row.className = "p-row on";
+          row.innerHTML = rowHTML(p);
+          list.appendChild(row);
+        });
+        syncEmptyState();
+        totalEl.textContent = `${TOTAL.toFixed(1)} GB`;
+        countEl.textContent = PROJECTS.length;
+        statusEl.textContent = `scan complete · ${PROJECTS.length} projects`;
+        footB.textContent = `${PROJECTS.length} selected`;
+        footS.textContent = `${TOTAL.toFixed(1)} GB ready to reclaim`;
+      }
+
+      if (reduceMotion) {
+        setStatic();
+        return;
+      }
+
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+      async function loop() {
+        // Reset
+        panel.classList.remove("is-purging");
+        list.innerHTML = "";
+        syncEmptyState();
+        totalEl.textContent = "0 B";
+        countEl.textContent = "0";
+        footB.textContent = "Nothing selected";
+        footS.textContent = "Scan to find candidates";
+        statusEl.textContent = "~/dev · ready to scan";
+        await wait(1400);
+
+        // Scan
+        panel.classList.add("is-scanning");
+        statusEl.textContent = "indexing ~/dev …";
+        await wait(900);
+
+        let running = 0;
+        for (let i = 0; i < PROJECTS.length; i++) {
+          const p = PROJECTS[i];
+          const row = document.createElement("div");
+          row.className = "p-row";
+          row.innerHTML = rowHTML(p);
+          list.appendChild(row);
+          syncEmptyState();
+          requestAnimationFrame(() => row.classList.add("on"));
+          running += p.gb;
+          totalEl.textContent = `${running.toFixed(1)} GB`;
+          countEl.textContent = i + 1;
+          statusEl.textContent = `found ${p.path}/node_modules`;
+          await wait(650);
+        }
+
+        panel.classList.remove("is-scanning");
+        statusEl.textContent = `scan complete · ${PROJECTS.length} projects`;
+        footB.textContent = `${PROJECTS.length} selected`;
+        footS.textContent = `${TOTAL.toFixed(1)} GB ready to reclaim`;
+        await wait(1600);
+
+        // Purge
+        panel.classList.add("is-purging");
+        statusEl.textContent = "purging selected …";
+        const rows = [...list.children];
+        let freed = 0;
+        for (let i = 0; i < rows.length; i++) {
+          rows[i].classList.add("gone");
+          freed += PROJECTS[i].gb;
+          totalEl.textContent = `${(TOTAL - freed).toFixed(1)} GB`;
+          countEl.textContent = PROJECTS.length - (i + 1);
+          await wait(420);
+        }
+        totalEl.textContent = "0 B";
+        statusEl.textContent = `purge complete · reclaimed ${TOTAL.toFixed(1)} GB`;
+        footB.textContent = `Reclaimed ${TOTAL.toFixed(1)} GB`;
+        footS.textContent = "rebuild any time with npm install";
+        panel.classList.remove("is-purging");
+        await wait(1400);
+
+        // Clear back to idle before the next cycle so the panel breathes.
+        list.innerHTML = "";
+        syncEmptyState();
+        statusEl.textContent = "~/dev · ready to scan";
+        footB.textContent = "Nothing selected";
+        footS.textContent = "Scan to find candidates";
+        await wait(1800);
+        loop();
+      }
+
+      loop();
+    })();
+  </script>
+</body>
+
+</html>
