@@ -1,0 +1,198 @@
+# Release pipeline: build NodeMinus for every platform, publish a GitHub
+# Release, then mirror stable-named artifacts to Cloudflare R2 for the
+# landing page's direct-download links.
+#
+# Trigger: push a tag like v0.1.0
+# Required repo secrets (see RELEASING.md):
+#   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+env:
+  R2_BUCKET: nodeminus-releases
+
+jobs:
+  build:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+            args: --target aarch64-apple-darwin
+          - platform: macos-latest
+            target: x86_64-apple-darwin
+            args: --target x86_64-apple-darwin
+          - platform: ubuntu-22.04
+            target: ""
+            args: ""
+          - platform: windows-latest
+            target: ""
+            args: ""
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install Linux dependencies
+        if: startsWith(matrix.platform, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            libgtk-3-dev \
+            librsvg2-dev \
+            libxdo-dev \
+            libssl-dev \
+            patchelf \
+            build-essential \
+            file
+
+      - run: npm ci
+
+      - name: Build and attach to GitHub Release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "NodeMinus ${{ github.ref_name }}"
+          releaseBody: "Direct downloads: https://dl.nodeminus.app · Full changelog below."
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }}
+
+  publish-r2:
+    name: Publish downloads to Cloudflare R2
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      # Newer AWS CLI versions send integrity checksums R2 may reject.
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+      R2_ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Download release assets
+        run: |
+          mkdir -p assets
+          gh release download "${GITHUB_REF_NAME}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --dir assets
+          ls -la assets
+
+      - name: Stage versioned and stable-named artifacts
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          mkdir -p out/releases/"${GITHUB_REF_NAME}" out/latest
+
+          # Versioned archive keeps original Tauri artifact names.
+          cp assets/* out/releases/"${GITHUB_REF_NAME}"/
+
+          # Stable names the landing page links to (glob-based so minor
+          # Tauri naming changes don't break the pipeline).
+          stable() { # stable <glob> <stable-name>
+            local match
+            match=$(find assets -maxdepth 1 -name "$1" | head -1)
+            if [ -n "$match" ]; then
+              cp "$match" "out/latest/$2"
+              echo "latest/$2  <-  $(basename "$match")"
+            else
+              echo "::warning::no artifact matched $1 (wanted $2)"
+            fi
+          }
+          stable "*aarch64*.dmg"      "NodeMinus-macos-arm64.dmg"
+          stable "*x64*.dmg"          "NodeMinus-macos-x64.dmg"
+          stable "*setup.exe"         "NodeMinus-windows-x64-setup.exe"
+          stable "*.AppImage"         "NodeMinus-linux-x86_64.AppImage"
+          stable "*amd64*.deb"        "NodeMinus-linux-amd64.deb"
+
+          # Checksums + version manifest for the landing page.
+          (cd out/latest && shasum -a 256 NodeMinus-* > SHA256SUMS.txt)
+          python3 - "$VERSION" <<'EOF'
+          import hashlib, json, os, sys
+          from datetime import datetime, timezone
+
+          version = sys.argv[1]
+          files = {}
+          for name in sorted(os.listdir("out/latest")):
+              if not name.startswith("NodeMinus-"):
+                  continue
+              path = os.path.join("out/latest", name)
+              digest = hashlib.sha256(open(path, "rb").read()).hexdigest()
+              files[name] = {"size": os.path.getsize(path), "sha256": digest}
+          manifest = {
+              "version": version,
+              "pub_date": datetime.now(timezone.utc).isoformat(),
+              "files": files,
+          }
+          with open("out/latest.json", "w") as f:
+              json.dump(manifest, f, indent=2)
+          print(json.dumps(manifest, indent=2))
+          EOF
+
+      - name: Upload to R2
+        run: |
+          set -euo pipefail
+          ctype() {
+            case "$1" in
+              *.dmg)      echo "application/x-apple-diskimage" ;;
+              *.exe)      echo "application/vnd.microsoft.portable-executable" ;;
+              *.msi)      echo "application/x-msi" ;;
+              *.deb)      echo "application/vnd.debian.binary-package" ;;
+              *.AppImage) echo "application/octet-stream" ;;
+              *.json)     echo "application/json" ;;
+              *.txt)      echo "text/plain" ;;
+              *)          echo "application/octet-stream" ;;
+            esac
+          }
+
+          # Immutable, versioned copies.
+          find out/releases -type f | while read -r f; do
+            key="${f#out/}"
+            aws s3 cp "$f" "s3://${R2_BUCKET}/${key}" \
+              --endpoint-url "$R2_ENDPOINT" \
+              --content-type "$(ctype "$f")" \
+              --cache-control "public, max-age=31536000, immutable"
+          done
+
+          # Mutable "latest" channel the landing page points at.
+          find out/latest -type f | while read -r f; do
+            key="latest/$(basename "$f")"
+            aws s3 cp "$f" "s3://${R2_BUCKET}/${key}" \
+              --endpoint-url "$R2_ENDPOINT" \
+              --content-type "$(ctype "$f")" \
+              --cache-control "public, max-age=300"
+          done
+
+          aws s3 cp out/latest.json "s3://${R2_BUCKET}/latest.json" \
+            --endpoint-url "$R2_ENDPOINT" \
+            --content-type "application/json" \
+            --cache-control "public, max-age=300"
+
+          echo "Published $(find out -type f | wc -l) objects to ${R2_BUCKET}"
