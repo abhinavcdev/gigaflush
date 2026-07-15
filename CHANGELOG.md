@@ -5,6 +5,19 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.1.1] — 2026-07-13
+
+### Fixed
+
+- macOS builds are now ad-hoc signed during bundling. The v0.1.0 build had no
+  signature at all, which macOS's Gatekeeper reports as **"NodeMinus" is
+  damaged and can't be opened** on Apple Silicon rather than the usual
+  unidentified-developer warning — that message is specific to arm64 binaries
+  with no valid code signature at all, and isn't fixable by the user. Ad-hoc
+  signing satisfies macOS's hard requirement that all arm64 executables carry
+  a valid signature, so the app now opens normally via right-click → Open.
+  Anyone who downloaded the v0.1.0 macOS build should grab v0.1.1 instead.
+
 ## [0.1.0] — 2026-07-12
 
 Initial release.

@@ -1,6 +1,6 @@
 {
   "name": "nodeminus",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "System tray utility to scan and purge node_modules directories",
   "private": true,
   "scripts": {

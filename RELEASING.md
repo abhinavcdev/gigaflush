@@ -83,9 +83,16 @@ number — nothing to configure there either.
 
 ## Notes
 
-- macOS builds are unsigned until you add `APPLE_CERTIFICATE` / notarization
-  secrets to the workflow (`tauri-apps/tauri-action` supports them) — users
-  will need to right-click → Open on first launch.
+- macOS builds are **ad-hoc signed** (`bundle.macOS.signingIdentity: "-"` in
+  `tauri.conf.json`) but not notarized. This is required, not optional: an
+  arm64 binary with no signature at all fails Gatekeeper with **"is damaged
+  and can't be opened"** — a message that looks like a corrupted download but
+  actually means "unsigned," and isn't fixable by the user. Ad-hoc signing
+  fixes that; users still see the normal unidentified-developer prompt and
+  need to right-click → Open on first launch. Full notarization (no prompt at
+  all) requires an Apple Developer account and `APPLE_CERTIFICATE` /
+  `APPLE_ID` / `APPLE_TEAM_ID` secrets, which `tauri-apps/tauri-action`
+  supports if you add them later.
 - GitHub Releases has no published bandwidth cap for public repos, but very
   large or very popular binaries are still better served from a real CDN —
   revisit this if that ever becomes the bottleneck.
