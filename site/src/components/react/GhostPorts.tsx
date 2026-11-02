@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, animate, motion, useMotionValue, useTransform } from "motion/react";
+import { animate, motion, useMotionValue, useTransform } from "motion/react";
 import { useLive } from "./bento/useLive";
 import s from "./ghost.module.css";
 
@@ -7,62 +7,60 @@ type Server = {
   port: number;
   name: string;
   cmd: string;
-  rt: string;
   mb: number;
   /** hours running */
   up: number;
-  state: "live" | "idle";
+  idle: boolean;
   orphaned?: boolean;
+  /** why an in-use server is left alone */
+  kept?: string;
 };
 
 const SERVERS: Server[] = [
-  { port: 3000, rt: "node", name: "dashboard", cmd: "next dev", mb: 312, up: 26, state: "idle", orphaned: true },
-  { port: 4321, rt: "node", name: "marketing-site", cmd: "astro dev", mb: 140, up: 1.5, state: "live" },
-  { port: 4322, rt: "node", name: "marketing-site", cmd: "astro preview", mb: 182, up: 168, state: "idle", orphaned: true },
-  { port: 5173, rt: "node", name: "studio-web", cmd: "vite", mb: 210, up: 2, state: "live" },
-  { port: 8000, rt: "python", name: "api", cmd: "manage.py runserver", mb: 64, up: 9, state: "idle" },
-  { port: 8787, rt: "node", name: "edge", cmd: "wrangler dev", mb: 90, up: 0.4, state: "live" },
+  { port: 4322, name: "marketing-site", cmd: "astro preview", mb: 182, up: 168, idle: true, orphaned: true },
+  { port: 3000, name: "dashboard", cmd: "next dev", mb: 312, up: 26, idle: true, orphaned: true },
+  { port: 8000, name: "api", cmd: "manage.py runserver", mb: 64, up: 9, idle: true },
+  { port: 5173, name: "studio-web", cmd: "vite", mb: 210, up: 2, idle: false, kept: "Connected" },
+  { port: 4321, name: "docs", cmd: "astro dev", mb: 140, up: 1.5, idle: false, kept: "Connected" },
+  { port: 8787, name: "edge", cmd: "wrangler dev", mb: 90, up: 0.4, idle: false, kept: "Started 25m ago" },
 ];
-
-const SPRING = { type: "spring", stiffness: 420, damping: 30 } as const;
-const BOUNCE = { type: "spring", stiffness: 380, damping: 18 } as const;
+const IDLE = SERVERS.filter((x) => x.idle);
+const LIVE = SERVERS.filter((x) => !x.idle);
+const BY_PORT = [...SERVERS].sort((a, b) => a.port - b.port);
 
 const age = (h: number) => (h < 1 ? `${Math.round(h * 60)}m` : h < 24 ? `${Math.round(h)}h` : `${Math.round(h / 24)}d`);
 // Uptime on a log scale from 30 minutes to 30 days, like the app.
 const meter = (h: number) => Math.log(Math.min(720, Math.max(0.5, h)) / 0.5) / Math.log(720 / 0.5);
 
-// A patch panel of localhost. Connected servers carry traffic; idle ones sit
-// hollow until they are flushed. Plays itself while on screen, hands over the
-// moment you touch it.
-export default function GhostPorts({ compact = false }: { compact?: boolean }) {
+// The app's Servers tab as a live demo. Every row and pill keeps its place:
+// stopping dims an item instead of removing it, so the card never changes
+// size. Plays itself while on screen; hands over the moment you touch it.
+export default function GhostPorts() {
   const ref = useRef<HTMLDivElement>(null);
   const { running, reduce } = useLive(ref);
-  const [gone, setGone] = useState<Set<number>>(() => new Set());
+  const [stopped, setStopped] = useState<Set<number>>(() => new Set());
   const [touched, setTouched] = useState(false);
-  const held = useMotionValue(0);
+  const held = useMotionValue(IDLE.reduce((a, x) => a + x.mb, 0));
   const heldText = useTransform(held, (v) => `${Math.round(v)} MB`);
 
-  const idle = SERVERS.filter((x) => x.state === "idle" && !gone.has(x.port));
-  const listening = SERVERS.filter((x) => !gone.has(x.port));
-  const total = idle.reduce((a, x) => a + x.mb, 0);
+  const idleLeft = IDLE.filter((x) => !stopped.has(x.port));
+  const total = idleLeft.reduce((a, x) => a + x.mb, 0);
 
   useEffect(() => {
-    const c = animate(held, total, reduce ? { duration: 0 } : { type: "spring", stiffness: 120, damping: 22 });
+    const c = animate(held, total, reduce ? { duration: 0 } : { type: "spring", stiffness: 140, damping: 24 });
     return () => c.stop();
   }, [total, reduce, held]);
 
-  // Self-playing tour: flush one ghost at a time, wait, then they come back.
+  // Tour: stop each idle server in turn, hold, then bring them back.
   useEffect(() => {
     if (!running || touched) return;
-    const ghosts = SERVERS.filter((x) => x.state === "idle");
-    const timers = [
-      ...ghosts.map((g, i) => setTimeout(() => setGone((prev) => new Set(prev).add(g.port)), 2200 + i * 650)),
-      setTimeout(() => setGone(new Set()), 2200 + ghosts.length * 650 + 3800),
-    ];
-    const loop = setInterval(() => {
-      ghosts.forEach((g, i) => timers.push(setTimeout(() => setGone((prev) => new Set(prev).add(g.port)), 2200 + i * 650)));
-      timers.push(setTimeout(() => setGone(new Set()), 2200 + ghosts.length * 650 + 3800));
-    }, 2200 + ghosts.length * 650 + 5200);
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const cycle = () => {
+      IDLE.forEach((g, i) => timers.push(setTimeout(() => setStopped((p) => new Set(p).add(g.port)), 1800 + i * 700)));
+      timers.push(setTimeout(() => setStopped(new Set()), 1800 + IDLE.length * 700 + 3600));
+    };
+    cycle();
+    const loop = setInterval(cycle, 1800 + IDLE.length * 700 + 5000);
     return () => {
       timers.forEach(clearTimeout);
       clearInterval(loop);
@@ -71,19 +69,19 @@ export default function GhostPorts({ compact = false }: { compact?: boolean }) {
 
   const stop = (port: number) => {
     setTouched(true);
-    setGone((prev) => new Set(prev).add(port));
+    setStopped((p) => new Set(p).add(port));
   };
-  const flushAll = () => {
+  const stopAll = () => {
     setTouched(true);
-    idle.forEach((x, i) => setTimeout(() => setGone((prev) => new Set(prev).add(x.port)), reduce ? 0 : i * 160));
+    idleLeft.forEach((x, i) => setTimeout(() => setStopped((p) => new Set(p).add(x.port)), reduce ? 0 : i * 140));
   };
   const reset = () => {
     setTouched(true);
-    setGone(new Set());
+    setStopped(new Set());
   };
 
   return (
-    <div ref={ref} className={`${s.wrap} ${compact ? s.compact : ""}`}>
+    <div ref={ref} className={s.wrap}>
       <div className={s.head}>
         <div>
           <motion.b className={s.held}>{heldText}</motion.b>
@@ -91,124 +89,80 @@ export default function GhostPorts({ compact = false }: { compact?: boolean }) {
         </div>
         <div className={s.stats} aria-live="polite">
           <span>
-            <b>{listening.length}</b> listening
+            <b>{idleLeft.length}</b>idle
           </span>
           <span>
-            <b>{idle.length}</b> idle
+            <b>{LIVE.length}</b>in use
           </span>
         </div>
       </div>
 
-      <div className={s.panel} role="list" aria-label="Ports on localhost">
-        {SERVERS.map((x, i) => {
-          const out = gone.has(x.port);
+      <div className={s.mapHead}>
+        <span className={s.mono}>localhost</span>
+        <span>{SERVERS.length - stopped.size} listening</span>
+      </div>
+      <div className={s.pills} role="list" aria-label="Ports on localhost">
+        {BY_PORT.map((x) => (
+          <span key={x.port} role="listitem" className={`${s.pill} ${x.idle ? s.idlePill : ""} ${stopped.has(x.port) ? s.freed : ""}`}>
+            <i className={`${s.dot} ${x.idle ? s.dIdle : x.kept === "Connected" ? s.dLive : s.dRun}`} />:{x.port}
+          </span>
+        ))}
+      </div>
+
+      <div className={s.list}>
+        <div className={s.group}>Idle · safe to stop</div>
+        {IDLE.map((x) => {
+          const done = stopped.has(x.port);
           return (
-            <div key={x.port} className={s.slot} role="listitem">
-              <AnimatePresence initial={false}>
-                {!out && (
-                  <motion.button
-                    type="button"
-                    className={`${s.socket} ${x.state === "idle" ? s.idle : s.live}`}
-                    disabled={x.state !== "idle"}
-                    onClick={() => stop(x.port)}
-                    initial={{ y: -14, scale: 0.85, opacity: 0 }}
-                    animate={{ y: 0, scale: 1, opacity: 1, transition: { ...BOUNCE, delay: reduce ? 0 : i * 0.03 } }}
-                    exit={{ y: 16, scale: 0.8, opacity: 0, transition: SPRING }}
-                    whileHover={x.state === "idle" ? { y: -3 } : undefined}
-                    whileTap={x.state === "idle" ? { scale: 0.94 } : undefined}
-                    aria-label={`Port ${x.port}, ${x.cmd}, ${x.state === "idle" ? `idle ${age(x.up)}. Stop` : "connected"}`}
-                  >
-                    <span className={s.hole}>
-                      <i />
-                    </span>
-                    <span className={s.port}>:{x.port}</span>
-                    <span className={s.meta}>{x.state === "live" ? "live" : age(x.up)}</span>
-                    {x.state === "live" && !reduce && (
-                      <span className={s.traffic} aria-hidden="true">
-                        <i style={{ animationDelay: `${i * 0.37}s` }} />
-                        <i style={{ animationDelay: `${i * 0.37 + 0.6}s` }} />
-                      </span>
-                    )}
-                  </motion.button>
-                )}
-              </AnimatePresence>
-              {out && <span className={s.freed}>:{x.port} free</span>}
+            <div key={x.port} className={`${s.row} ${done ? s.done : ""}`}>
+              <i className={`${s.dot} ${s.dIdle}`} />
+              <span className={s.info}>
+                <b>{x.name}</b>
+                <code>
+                  :{x.port} · {x.cmd}
+                </code>
+              </span>
+              <span className={s.uptime}>
+                <span className={s.track}>
+                  <span className={s.fill} style={{ transform: `scaleX(${meter(x.up)})` }} />
+                </span>
+                {x.orphaned ? "orphaned" : "up"} {age(x.up)}
+              </span>
+              <span className={s.side}>
+                <b>{x.mb} MB</b>
+                <button type="button" onClick={() => stop(x.port)} disabled={done}>
+                  {done ? "Stopped" : "Stop"}
+                </button>
+              </span>
             </div>
           );
         })}
+        <div className={s.group}>In use · left alone</div>
+        {LIVE.map((x) => (
+          <div key={x.port} className={s.row}>
+            <i className={`${s.dot} ${x.kept === "Connected" ? s.dLive : s.dRun}`} />
+            <span className={s.info}>
+              <b>{x.name}</b>
+              <code>
+                :{x.port} · {x.cmd}
+              </code>
+            </span>
+            <span />
+            <span className={s.kept}>{x.kept}</span>
+          </div>
+        ))}
       </div>
-
-      <div className={s.legend} aria-hidden="true">
-        <span>
-          <i className={s.kLive} />
-          Connected
-        </span>
-        <span>
-          <i className={s.kIdle} />
-          Idle, safe to stop
-        </span>
-      </div>
-
-      {!compact && (
-        <motion.div layout className={s.rows}>
-          <AnimatePresence initial={false}>
-            {idle.map((x) => (
-              <motion.div
-                key={x.port}
-                layout
-                className={s.row}
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0, transition: SPRING }}
-                transition={SPRING}
-              >
-                <span className={s.plate}>
-                  <b>:{x.port}</b>
-                  <small>{x.rt}</small>
-                </span>
-                <span className={s.info}>
-                  <b>{x.name}</b>
-                  <code>{x.cmd}</code>
-                  <span className={s.meter} title="Uptime on a log scale">
-                    <span className={s.track}>
-                      <motion.span
-                        className={s.fill}
-                        initial={{ scaleX: 0 }}
-                        animate={{ scaleX: meter(x.up) }}
-                        transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 90, damping: 18 }}
-                      />
-                    </span>
-                    {x.orphaned ? "Orphaned · " : ""}
-                    {age(x.up)}
-                  </span>
-                </span>
-                <span className={s.side}>
-                  <b>{x.mb} MB</b>
-                  <button type="button" onClick={() => stop(x.port)}>
-                    Stop
-                  </button>
-                </span>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-          {!idle.length && (
-            <motion.p className={s.clear} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={SPRING}>
-              No ghosts. Every port left is in use.
-            </motion.p>
-          )}
-        </motion.div>
-      )}
 
       <div className={s.foot}>
-        <span>Stopping works like Ctrl+C. Nothing connected is ever suggested.</span>
-        {idle.length ? (
-          <motion.button type="button" className={s.flush} onClick={flushAll} whileTap={{ scale: 0.96 }}>
-            Stop {idle.length} idle
-          </motion.button>
+        <span>Stopping works like Ctrl+C.</span>
+        {idleLeft.length ? (
+          <button type="button" className={s.primary} onClick={stopAll}>
+            Stop {idleLeft.length} idle
+          </button>
         ) : (
-          <motion.button type="button" className={s.reset} onClick={reset} whileTap={{ scale: 0.96 }}>
+          <button type="button" className={s.secondary} onClick={reset}>
             Restart demo
-          </motion.button>
+          </button>
         )}
       </div>
     </div>

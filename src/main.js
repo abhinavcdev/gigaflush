@@ -1496,6 +1496,12 @@ function renderPortMap() {
     ? `${devServers.length} listening`
     : "";
   els.portMap.classList.toggle("is-empty", !devServers.length);
+  requestAnimationFrame(() =>
+    els.portMap.classList.toggle(
+      "is-overflowing",
+      els.portMap.scrollWidth > els.portMap.clientWidth + 1,
+    ),
+  );
 }
 
 // Stopped rows and pills hold their place while you look; they clear the

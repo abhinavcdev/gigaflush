@@ -1337,7 +1337,7 @@ code,
 }
 .port-map {
   display: flex;
-  gap: 6px;
+  gap: 5px;
   min-height: 26px;
   margin-bottom: 16px;
   overflow-x: auto;
@@ -1345,6 +1345,9 @@ code,
 }
 .port-map::-webkit-scrollbar {
   display: none;
+}
+.port-map.is-overflowing {
+  mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
 }
 .port-map.is-empty::before {
   content: "Nothing listening";
@@ -1358,7 +1361,7 @@ code,
   align-items: center;
   gap: 6px;
   height: 26px;
-  padding: 0 10px;
+  padding: 0 9px;
   border: 0;
   border-radius: 13px;
   background: var(--control);

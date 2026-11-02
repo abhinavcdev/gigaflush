@@ -100,9 +100,12 @@ const rules = [
   .more-link {
     margin-top: 28px;
   }
+  .demo {
+    min-width: 0;
+  }
   @media (max-width: 900px) {
     .grid {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
       gap: 40px;
     }
     .demo {
