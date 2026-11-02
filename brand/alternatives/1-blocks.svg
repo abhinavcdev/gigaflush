@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024"><defs>
+<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#25272a"/><stop offset="1" stop-color="#121314"/></linearGradient>
+<linearGradient id="accent" gradientUnits="userSpaceOnUse" x1="250" y1="800" x2="800" y2="220"><stop offset="0" stop-color="#2f80ff"/><stop offset="1" stop-color="#5fb2ff"/></linearGradient>
+</defs><rect x="100" y="100" width="824" height="824" rx="186" fill="url(#bg)"/>
+<rect x="100.5" y="100.5" width="823" height="823" rx="185.5" fill="none" stroke="#fff" stroke-opacity=".09"/><rect x="253.0" y="253.0" width="150" height="150" rx="40" fill="#f4f5f1"/>
+<rect x="437.0" y="253.0" width="150" height="150" rx="40" fill="#f4f5f1"/>
+<rect x="627.0" y="259.0" width="138" height="138" rx="34" fill="none" stroke="#f4f5f1" stroke-opacity=".35" stroke-width="12" stroke-dasharray="22 20"/>
+<rect x="253.0" y="437.0" width="150" height="150" rx="40" fill="#f4f5f1"/>
+<rect x="621.0" y="437.0" width="150" height="150" rx="40" fill="url(#accent)"/>
+<rect x="253.0" y="621.0" width="150" height="150" rx="40" fill="#f4f5f1"/>
+<rect x="437.0" y="621.0" width="150" height="150" rx="40" fill="#f4f5f1"/>
+<rect x="621.0" y="621.0" width="150" height="150" rx="40" fill="#f4f5f1"/></svg>

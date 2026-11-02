@@ -24,3 +24,9 @@ npm-debug.log*
 # Env
 .env
 .env.local
+
+# Local UI verification captures
+.impeccable/review/
+
+# CI-generated signing config
+src-tauri/tauri.signing.conf.json

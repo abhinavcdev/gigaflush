@@ -1,0 +1,25 @@
+---
+import Prose from "../layouts/Prose.astro";
+import { SUPPORT_EMAIL } from "../config";
+---
+
+<Prose title="Privacy" description="What Gigaflush and gigaflush.app collect: almost nothing." updated="November 1, 2026">
+  <p><strong>Short version:</strong> the Gigaflush app has no telemetry, no analytics, and no account. Your file paths, project names, and scan results never leave your computer.</p>
+
+  <h2>The app</h2>
+  <ul>
+    <li>Scanning and cleanup run entirely on your device.</li>
+    <li>Your last scanned folder, enabled cleanup types, and theme are saved locally on your device only.</li>
+    <li>At most twice a day, the app asks GitHub's public API for the latest release number so it can tell you about updates. Like any web request, this exposes your IP address to GitHub. See <a href="https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a>.</li>
+    <li>Links you click (support, source, your Polar library) open in your browser.</li>
+  </ul>
+
+  <h2>Purchases</h2>
+  <p>Paid builds are sold by <a href="https://polar.sh">Polar</a>, which acts as merchant of record and processes your name, email, payment, and billing details. We receive your order details from Polar so we can provide support. See <a href="https://polar.sh/legal/privacy">Polar's privacy policy</a>.</p>
+
+  <h2>This website</h2>
+  <p>gigaflush.app has no analytics, tracking pixels, or cookies. Your theme choice is stored in your browser's local storage. The download section asks GitHub's public API for the latest version number. The site is hosted on Cloudflare, which processes standard request logs.</p>
+
+  <h2>Contact</h2>
+  <p>Questions about privacy: <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.</p>
+</Prose>

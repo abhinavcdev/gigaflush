@@ -1,0 +1,107 @@
+---
+title: "Port 3000 already in use? Find and stop the ghost dev servers"
+description: "EADDRINUSE means something is still listening. Usually it's a dev server a closed terminal or coding agent left running for days. How to find what's on a port on macOS, Linux and Windows, stop it safely, and keep it from happening again."
+date: 2026-11-01
+tags: ["dev servers", "ports", "coding agents"]
+keywords: ["port 3000 already in use", "EADDRINUSE address already in use", "kill process on port mac", "find process using port", "lsof -i :3000", "kill node process port", "npx kill-port", "vite port 5173 in use", "next.js port 3000 in use", "claude code dev server still running", "orphaned node processes", "stop all node processes"]
+accent: "#b48cff"
+featured: true
+figure: port-panel
+---
+
+import GhostPorts from "../../components/react/GhostPorts.tsx";
+import CommandTabs from "../../components/react/CommandTabs.tsx";
+import Callout from "../../components/blog/Callout.astro";
+
+You run `npm run dev` and get this instead of a server:
+
+```text
+Error: listen EADDRINUSE: address already in use :::3000
+```
+
+Nothing is wrong with your project. **Something else is already listening on that port**, and nine times out of ten it's you: a dev server from yesterday, still running in a terminal tab you closed, or one an AI coding agent started to check its work and never stopped.
+
+## Where ghost servers come from
+
+- **Closed terminals.** Closing a tab or window doesn't always stop what's in it. Tools started with `&`, `nohup`, or a process manager keep going, and their parent becomes `launchd` (macOS) or `init` (Linux). That's an *orphaned* process.
+- **Coding agents.** Claude Code, Cursor, Codex and friends happily start `vite`, `next dev` or `python -m http.server` to test a change. When the session ends, the server often doesn't.
+- **Port hopping.** Vite and Astro quietly move to the next free port. So the ghost on `:5173` doesn't error; you just end up on `:5174`, `:5175`… and the old ones never die.
+
+Each one holds a port and some memory, and many keep file watchers running. Here's what a typical evening looks like. Press a hollow socket, or let it play:
+
+<GhostPorts client:visible />
+
+## Step 1: find what's listening
+
+<CommandTabs
+  client:visible
+  id="find"
+  tabs={[
+    { label: "macOS / Linux", code: "lsof -nP -iTCP:3000 -sTCP:LISTEN", note: "Drop :3000 to list every listening port: lsof -nP -iTCP -sTCP:LISTEN" },
+    { label: "Linux (ss)", code: "ss -ltnp 'sport = :3000'" },
+    { label: "PowerShell", code: "Get-NetTCPConnection -LocalPort 3000 -State Listen |\n  Select-Object LocalPort, OwningProcess, @{n='Name';e={(Get-Process -Id $_.OwningProcess).ProcessName}}" },
+    { label: "cmd.exe", code: "netstat -ano | findstr :3000" },
+  ]}
+/>
+
+That gives you a PID. Before you stop it, find out what it actually is and where it runs from:
+
+<CommandTabs
+  client:visible
+  id="inspect"
+  tabs={[
+    { label: "macOS / Linux", code: "ps -o pid,ppid,etime,%cpu,command -p <PID>\nlsof -a -d cwd -p <PID>", note: "PPID 1 means orphaned. etime is how long it has been running; cwd is the project folder." },
+    { label: "PowerShell", code: "Get-CimInstance Win32_Process -Filter \"ProcessId = <PID>\" |\n  Select-Object ProcessId, ParentProcessId, CreationDate, CommandLine" },
+  ]}
+/>
+
+## Step 2: check nobody is using it
+
+A server you forgot isn't automatically a server nobody needs. If a browser tab, a mobile simulator or another service is connected right now, there's an established connection on that port:
+
+<CommandTabs
+  client:visible
+  id="connected"
+  tabs={[
+    { label: "macOS / Linux", code: "lsof -nP -iTCP:3000 -sTCP:ESTABLISHED" },
+    { label: "PowerShell", code: "Get-NetTCPConnection -LocalPort 3000 -State Established" },
+  ]}
+/>
+
+Empty output, a process that has been up for hours, and a parent PID of 1: that's a ghost.
+
+## Step 3: stop it politely
+
+<Callout type="warn" title="Ask before you force">
+  Send SIGTERM first, the same signal as Ctrl+C. It lets the server close sockets, flush logs and stop its file watchers. Only reach for `kill -9` if it refuses, and never on a PID you haven't just checked: PIDs get reused.
+</Callout>
+
+<CommandTabs
+  client:visible
+  id="stop"
+  tabs={[
+    { label: "macOS / Linux", code: "kill <PID>        # SIGTERM, like Ctrl+C\nkill -9 <PID>     # only if it ignores the first one" },
+    { label: "PowerShell", code: "Stop-Process -Id <PID>" },
+    { label: "cmd.exe", code: "taskkill /PID <PID>\ntaskkill /PID <PID> /F   :: force, last resort" },
+    { label: "npx", code: "npx kill-port 3000", note: "Convenient, but it kills whatever is on the port without asking what it is." },
+  ]}
+/>
+
+What about `killall node` or `pkill -f node`? Please don't. Your editor's language servers, MCP servers, the agent you're using and half your desktop apps may be Node processes too.
+
+## Or let Gigaflush find them
+
+Gigaflush's **Servers** tab does the checks above for every port at once, every time you open it, and only suggests a server when *all* of these are true:
+
+1. It's **your** process, and a dev runtime: Node, Bun, Deno, Python, Ruby or PHP. Databases, Docker, editors, agents and language servers are never listed.
+2. **Nothing is connected** to its ports.
+3. It has run for **at least 30 minutes** at **under 2% CPU** on average.
+4. It's **orphaned**, or it has been running for **6 hours or more**.
+
+The patch panel shows every dev server you have running, so you can see what was left alone and why. Stopping one checks it again by PID *and* start time, then sends SIGTERM. Child processes such as bundlers and `workerd` get the same request. The whole check takes about 0.2 seconds and nothing runs in the background. It's available on macOS and Linux; Windows is next.
+
+## Keep it from happening again
+
+- **Pin the port** so a ghost fails loudly instead of pushing you to the next port: `vite --strictPort`, or `server.strictPort: true` in your Vite config.
+- **Tell your agent to clean up.** Add a line to your `CLAUDE.md` or `AGENTS.md` file, or your Cursor rules: *"Stop any dev server you start before finishing."*
+- **Prefer foreground servers** in a terminal you can see, over `&` and `nohup`.

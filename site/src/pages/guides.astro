@@ -1,0 +1,135 @@
+---
+import Base from "../layouts/Base.astro";
+import { guides, platforms } from "../data/cleanup";
+import { getPosts } from "../lib/blog";
+const posts = await getPosts();
+---
+
+<Base
+  title="Developer disk cleanup guides: node_modules, target, build caches | Gigaflush"
+  description="Is it safe to delete node_modules, Rust target, Flutter build, .gradle or .mypy_cache? Short, accurate guides for every common developer folder, with commands for macOS, Windows and Linux."
+>
+  <main class="frame">
+    <header class="head">
+      <p class="mono-label" data-reveal>Guides</p>
+      <h1 data-reveal style="--d:1">Is it safe to delete <span class="dim">that folder?</span></h1>
+      <p class="lede" data-reveal style="--d:2">Quick answers and copy-paste commands for the generated folders that fill developer disks.</p>
+    </header>
+    <section class="list">
+      {guides.map((g, i) => (
+        <a href={`/clean/${g.slug}`} class="row" data-reveal style={`--d:${i % 4}`} data-press>
+          <span class="eco">{g.ecosystem}</span>
+          <span class="folders">{g.folders.map((f) => <code>{f}</code>)}</span>
+          <span class="ans">{g.answer.split(".")[0]}.</span>
+          <span class="go mono-label">Read →</span>
+        </a>
+      ))}
+    </section>
+    <section class="split">
+      <div>
+        <p class="mono-label">By platform</p>
+        <ul>{platforms.map((p) => <li><a href={`/${p.slug}`}>Gigaflush for {p.name}</a></li>)}</ul>
+      </div>
+      <div>
+        <p class="mono-label">Long reads</p>
+        <ul>{posts.map((p) => <li><a href={`/blog/${p.id}`}>{p.data.title}</a></li>)}</ul>
+      </div>
+    </section>
+  </main>
+</Base>
+
+<style>
+  .head {
+    padding: 72px 40px 48px;
+    border-bottom: 1px solid var(--line);
+  }
+  h1 {
+    margin-top: 16px;
+    font-size: clamp(38px, 5.4vw, 68px);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.02;
+    text-wrap: balance;
+  }
+  .dim {
+    color: var(--faint);
+  }
+  .lede {
+    margin-top: 18px;
+    font-size: 18px;
+    color: var(--muted);
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 180px 260px 1fr auto;
+    gap: 24px;
+    align-items: center;
+    padding: 22px 40px;
+    border-bottom: 1px solid var(--line);
+    transition: background-color 200ms;
+  }
+  .row:hover {
+    background: var(--surface);
+  }
+  .eco {
+    font-weight: 600;
+    font-size: 17px;
+    letter-spacing: -0.02em;
+  }
+  .folders {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .folders code {
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: var(--control);
+    font-size: 12px;
+  }
+  .ans {
+    color: var(--muted);
+    font-size: 14.5px;
+  }
+  .go {
+    color: var(--text);
+    transition: transform 300ms var(--spring);
+  }
+  .row:hover .go {
+    transform: translateX(4px);
+  }
+  .split {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 40px;
+    padding: 40px;
+  }
+  .split ul {
+    list-style: none;
+    display: grid;
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .split a {
+    text-decoration: underline;
+    text-decoration-color: var(--line-strong);
+    text-underline-offset: 3px;
+  }
+  @media (max-width: 900px) {
+    .row {
+      grid-template-columns: 1fr;
+      gap: 8px;
+      padding: 20px;
+    }
+    .go {
+      display: none;
+    }
+    .split {
+      grid-template-columns: 1fr;
+      padding: 32px 20px;
+    }
+    .head {
+      padding-inline: 20px;
+    }
+  }
+</style>

@@ -1,0 +1,223 @@
+/* Shared styles for the live feature-card visuals. */
+.stage {
+  position: relative;
+  height: 176px;
+  margin: -4px -4px 22px;
+  border-radius: var(--radius-sm);
+  background: var(--content);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  font-size: 11px;
+  color: var(--muted);
+}
+.caption {
+  position: absolute;
+  left: 12px;
+  bottom: 9px;
+  font-size: 11px;
+  color: var(--faint);
+}
+
+/* Native stack */
+.stacks {
+  position: absolute;
+  inset: 14px 14px 30px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  align-items: end;
+}
+.column {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 4px;
+}
+.layer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 6px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.heavy {
+  background: var(--control);
+}
+.system {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--line-strong);
+  color: var(--muted);
+  font-weight: 400;
+}
+.ours {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--page);
+}
+.tag {
+  font-size: 10px;
+  font-weight: 400;
+  opacity: 0.7;
+}
+.columnLabel {
+  margin-top: 6px;
+  text-align: center;
+  font-size: 10.5px;
+  color: var(--faint);
+}
+
+/* Local only */
+.machine {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  bottom: 50px;
+  width: 60%;
+  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+}
+.machineLabel {
+  position: absolute;
+  left: 9px;
+  top: 7px;
+  font-size: 10.5px;
+  color: var(--faint);
+}
+.chip {
+  position: absolute;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: var(--content);
+  border: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text);
+  white-space: nowrap;
+}
+.remote {
+  position: absolute;
+  right: 12px;
+  top: 38px;
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  color: var(--faint);
+}
+.remoteIcon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  background: var(--content);
+  color: var(--text);
+}
+.packet {
+  position: absolute;
+  top: 46px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.log {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.zero {
+  color: var(--text);
+}
+
+/* Parallel scan */
+.lanes {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: 30px;
+  display: grid;
+  gap: 5px;
+}
+.lane {
+  position: relative;
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+.laneId {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--faint);
+}
+.track {
+  position: relative;
+  height: 8px;
+  display: flex;
+  gap: 2px;
+}
+.cell {
+  flex: 1;
+  border-radius: 2px;
+  background: var(--control);
+  transition: background-color 500ms;
+}
+.cellHit {
+  background: var(--accent);
+}
+.head {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--text);
+}
+.found {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 6px;
+  height: 54px;
+  overflow: hidden;
+}
+.foundRow {
+  display: flex;
+  justify-content: space-between;
+  height: 18px;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text);
+}
+.foundRow span:last-child {
+  color: var(--muted);
+}
+.counter {
+  position: absolute;
+  left: 12px;
+  top: 10px;
+  font-size: 10.5px;
+  color: var(--faint);
+}

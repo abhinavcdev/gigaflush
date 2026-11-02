@@ -1,0 +1,139 @@
+---
+import Base from "../../layouts/Base.astro";
+import PostCard from "../../components/blog/PostCard.astro";
+import { getPosts } from "../../lib/blog";
+
+const posts = await getPosts();
+const featured = posts.find((p) => p.data.featured) ?? posts[0];
+const rest = posts.filter((p) => p !== featured);
+// Only tags shared by two or more posts make useful filters.
+const counts = new Map<string, number>();
+posts.flatMap((p) => p.data.tags).forEach((t) => counts.set(t, (counts.get(t) ?? 0) + 1));
+const tags = [...counts].filter(([, n]) => n > 1).sort((a, b) => b[1] - a[1]).map(([t]) => t);
+const schema = {
+  "@context": "https://schema.org",
+  "@type": "Blog",
+  name: "Gigaflush blog",
+  url: new URL("/blog", Astro.site).href,
+  description: "Guides on reclaiming disk space from node_modules, Rust target, Flutter build and other developer caches.",
+  blogPost: posts.map((p) => ({ "@type": "BlogPosting", headline: p.data.title, url: new URL(`/blog/${p.id}`, Astro.site).href, datePublished: p.data.date.toISOString() })),
+};
+---
+
+<Base title="Blog — disk space, node_modules and build caches | Gigaflush" description="Practical guides for developers running out of disk space: deleting node_modules, cleaning Rust target and Flutter build folders, Mac and Windows cleanup, and tool comparisons." schema={schema}>
+  <main class="frame">
+    <header class="head">
+      <p class="mono-label" data-reveal>Blog</p>
+      <h1 data-reveal style="--d:1">Where your disk space <span class="dim">actually goes.</span></h1>
+      <div class="tags" data-reveal style="--d:2">
+        <button class="tag is-on" data-tag="all" data-press>All</button>
+        {tags.map((t) => <button class="tag" data-tag={t} data-press>{t}</button>)}
+      </div>
+    </header>
+    <section class="featured" data-reveal>
+      <PostCard post={featured} big />
+    </section>
+    <section class="grid">
+      {
+        rest.map((p, i) => (
+          <div data-reveal style={`--d:${i % 3}`} data-tags={p.data.tags.join(",")}>
+            <PostCard post={p} />
+          </div>
+        ))
+      }
+    </section>
+    <p class="rss mono-label"><a href="/rss.xml">Subscribe via RSS</a></p>
+  </main>
+</Base>
+
+<script>
+  import { animate } from "motion";
+  const buttons = [...document.querySelectorAll<HTMLButtonElement>("[data-tag]")];
+  const cards = [...document.querySelectorAll<HTMLElement>("[data-tags]")];
+  buttons.forEach((b) =>
+    b.addEventListener("click", () => {
+      buttons.forEach((x) => x.classList.toggle("is-on", x === b));
+      const tag = b.dataset.tag!;
+      cards.forEach((c, i) => {
+        const show = tag === "all" || c.dataset.tags!.split(",").includes(tag);
+        if (show) {
+          c.hidden = false;
+          animate(c, { opacity: [0, 1], y: [16, 0], scale: [0.97, 1] }, { type: "spring", stiffness: 260, damping: 22, delay: i * 0.03 });
+        } else c.hidden = true;
+      });
+    }),
+  );
+</script>
+
+<style>
+  .head {
+    padding: 72px 40px 40px;
+  }
+  h1 {
+    margin-top: 16px;
+    max-width: 16em;
+    font-size: clamp(36px, 5vw, 64px);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.02;
+    text-wrap: balance;
+  }
+  .dim {
+    color: var(--faint);
+  }
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 32px;
+  }
+  .tag {
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+    background: transparent;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .tag.is-on {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .featured,
+  .grid {
+    padding: 0 40px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .rss {
+    padding: 40px;
+  }
+  .rss a {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  @media (max-width: 900px) {
+    .grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  @media (max-width: 600px) {
+    .head,
+    .featured,
+    .grid,
+    .rss {
+      padding-inline: 16px;
+    }
+    .grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

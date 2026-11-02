@@ -1,0 +1,380 @@
+---
+import Icon from "./Icon.astro";
+const ecosystems = [
+  { name: "Node.js", project: "studio-web", marker: "package.json", files: ["src/", "tsconfig.json"], folders: [["node_modules/", "1.2 GB"]], rebuild: "npm install", note: "Reinstall with your package manager. Locally edited dependencies are lost." },
+  { name: "Rust", project: "search-index", marker: "Cargo.toml", files: ["src/", "Cargo.lock"], folders: [["target/", "2.4 GB"]], rebuild: "cargo build", note: "The next build takes longer while target/ is rebuilt." },
+  { name: "Flutter / Dart", project: "atlas-mobile", marker: "pubspec.yaml", files: ["lib/", "pubspec.lock"], folders: [["build/", "3.2 GB"], [".dart_tool/", "128 MB"]], rebuild: "flutter pub get", note: "Fetch packages, then rebuild. Stop running builds first." },
+  { name: "Python", project: "data-pipeline", marker: "pyproject.toml", files: ["src/", "tests/"], folders: [[".pytest_cache/", "28 MB"], [".mypy_cache/", "96 MB"], [".ruff_cache/", "4 MB"]], rebuild: "pytest", note: "Your test runner or linter recreates its cache on the next run. Virtual environments are never touched." },
+  { name: "Swift", project: "menu-bar", marker: "Package.swift", files: ["Sources/", "Tests/"], folders: [[".build/", "655 MB"]], rebuild: "swift build", note: "Dependencies and build output are recreated on the next build." },
+  { name: "Gradle", project: "android-app", marker: "build.gradle.kts", files: ["app/", "settings.gradle.kts"], folders: [[".gradle/", "310 MB"]], rebuild: "./gradlew build", note: "Only the project-local cache. Your global ~/.gradle stays put." },
+  { name: "Maven", project: "billing-api", marker: "pom.xml", files: ["src/", "README.md"], folders: [["target/", "418 MB"]], rebuild: "mvn package", note: "Compiled output is rebuilt on the next package." },
+];
+---
+
+<section class="section" id="ecosystems">
+  <div class="section-head" data-reveal>
+    <h2>Not just node_modules. <span class="dim">Everything you can rebuild.</span></h2>
+    <p>Each folder must match its toolchain's convention and sit beside a real project file. A stray build/ or dist/ is never a candidate.</p>
+  </div>
+
+  <div class="explorer" data-explorer data-reveal>
+    <div class="tabs" role="tablist" aria-label="Ecosystems">
+      {
+        ecosystems.map((e, i) => (
+          <button role="tab" aria-selected={i === 0 ? "true" : "false"} data-tab={i}>
+            <span>{e.name}</span>
+            <code>{e.folders.map((f) => f[0].replace("/", "")).join(" · ")}</code>
+            <i class="bar" />
+          </button>
+        ))
+      }
+    </div>
+
+    <div class="card panel" role="tabpanel">
+      <div class="panel-top">
+        <span class="dots"><i></i><i></i><i></i></span>
+        <code data-title>~/Developer/studio-web</code>
+      </div>
+      <div class="tree" data-tree></div>
+      <div class="legend">
+        <span><i class="sw marker"></i>Project marker, required</span>
+        <span><i class="sw gen"></i>Generated, removable</span>
+      </div>
+      <div class="term">
+        <span class="prompt">$</span>
+        <code data-cmd>npm install</code>
+        <button class="copy" data-copy aria-label="Copy command">
+          <Icon name="ph:copy" size={14} />
+          <span>Copy</span>
+        </button>
+      </div>
+      <p class="note" data-note></p>
+    </div>
+  </div>
+</section>
+
+<script define:vars={{ ecosystems }}>
+  const root = document.querySelector("[data-explorer]");
+  const tabs = [...root.querySelectorAll("[data-tab]")];
+  const tree = root.querySelector("[data-tree]");
+  const title = root.querySelector("[data-title]");
+  const cmd = root.querySelector("[data-cmd]");
+  const note = root.querySelector("[data-note]");
+  const copy = root.querySelector("[data-copy]");
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const DWELL = 4200;
+  let current = 0;
+  let timer = 0;
+  let auto = !reduce;
+
+  const esc = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+
+  function render(i) {
+    const e = ecosystems[i];
+    const lines = [
+      ...e.folders.map(([f, size]) => ({ name: f, size, kind: "gen" })),
+      { name: e.marker, kind: "marker" },
+      ...e.files.map((f) => ({ name: f, kind: "plain" })),
+    ];
+    tree.innerHTML = `<div class="t-root"><code>${esc(e.project)}/</code></div>` + lines
+      .map((l, n) => {
+        const branch = n === lines.length - 1 ? "└─" : "├─";
+        const tag = l.kind === "gen" ? `<em>removable</em><b>${l.size}</b>` : l.kind === "marker" ? `<em>marker</em>` : "";
+        return `<div class="t-row ${l.kind}" style="--i:${n}"><code><span class="br">${branch}</span> ${esc(l.name)}</code>${tag}</div>`;
+      })
+      .join("");
+    title.textContent = `~/Developer/${e.project}`;
+    cmd.textContent = e.rebuild;
+    note.textContent = e.note;
+  }
+
+  function select(i, fromUser) {
+    current = i;
+    tabs.forEach((t, j) => {
+      t.setAttribute("aria-selected", String(j === i));
+      t.classList.remove("is-running");
+    });
+    render(i);
+    if (fromUser) auto = false;
+    clearTimeout(timer);
+    if (auto) {
+      void tabs[i].offsetWidth;
+      tabs[i].classList.add("is-running");
+      timer = setTimeout(() => select((i + 1) % ecosystems.length, false), DWELL);
+    }
+  }
+
+  tabs.forEach((t, i) => t.addEventListener("click", () => select(i, true)));
+  root.addEventListener("keydown", (ev) => {
+    if (ev.key !== "ArrowDown" && ev.key !== "ArrowUp" && ev.key !== "ArrowRight" && ev.key !== "ArrowLeft") return;
+    ev.preventDefault();
+    const next = (current + (ev.key === "ArrowDown" || ev.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+    select(next, true);
+    tabs[next].focus();
+  });
+  copy.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(cmd.textContent);
+      copy.classList.add("is-copied");
+      copy.querySelector("span").textContent = "Copied";
+      setTimeout(() => {
+        copy.classList.remove("is-copied");
+        copy.querySelector("span").textContent = "Copy";
+      }, 1600);
+    } catch (_) {}
+  });
+
+  // Start cycling only once the explorer is on screen.
+  new IntersectionObserver(([e], obs) => {
+    if (e.isIntersecting) {
+      select(0, false);
+      obs.disconnect();
+    }
+  }, { threshold: 0.4 }).observe(root);
+  render(0);
+</script>
+
+<style>
+  .explorer {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: 24px;
+    align-items: stretch;
+  }
+  .tabs {
+    display: grid;
+    gap: 6px;
+  }
+  .tabs button {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 18px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    color: var(--muted);
+    transition:
+      background-color 250ms,
+      border-color 250ms,
+      color 250ms;
+  }
+  .tabs button:hover {
+    color: var(--text);
+    background: var(--surface);
+  }
+  .tabs button[aria-selected="true"] {
+    color: var(--text);
+    background: var(--content);
+    border-color: var(--line);
+    box-shadow: var(--card-shadow);
+  }
+  .tabs span {
+    font-weight: 600;
+    font-size: 15px;
+  }
+  .tabs code {
+    font-size: 11.5px;
+    color: var(--faint);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .bar {
+    position: absolute;
+    left: 18px;
+    right: 18px;
+    bottom: 0;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+  .is-running .bar {
+    animation: fill 4200ms linear forwards;
+  }
+  .panel {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+  .panel-top {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .dots {
+    display: flex;
+    gap: 6px;
+  }
+  .dots i {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--line-strong);
+  }
+  .tree {
+    flex: 1;
+    padding: 18px 20px 8px;
+    font-size: 14px;
+    min-height: 250px;
+  }
+  .tree :global(.t-root) {
+    padding: 6px 10px;
+    font-weight: 600;
+  }
+  .tree :global(.t-row) {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    border-radius: 9px;
+    animation: row-in 600ms var(--ease) both;
+    animation-delay: calc(var(--i) * 60ms);
+  }
+  .tree :global(.t-row code) {
+    white-space: pre;
+  }
+  .tree :global(.br) {
+    color: var(--faint);
+  }
+  .tree :global(.t-row.plain) {
+    color: var(--muted);
+  }
+  .tree :global(.t-row.gen) {
+    background: var(--selected);
+  }
+  .tree :global(.t-row.gen code) {
+    font-weight: 600;
+  }
+  .tree :global(.t-row em) {
+    font-style: normal;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+  .tree :global(.t-row.gen em) {
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+  .tree :global(.t-row.marker em) {
+    color: var(--success);
+    background: var(--success-soft);
+  }
+  .tree :global(.t-row b) {
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    padding: 4px 30px 16px;
+    color: var(--faint);
+    font-size: 12px;
+  }
+  .legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .sw {
+    width: 9px;
+    height: 9px;
+    border-radius: 3px;
+  }
+  .sw.marker {
+    background: var(--success);
+  }
+  .sw.gen {
+    background: var(--accent);
+  }
+  .term {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 18px;
+    padding: 10px 10px 10px 16px;
+    border-radius: 8px;
+    background: #0d0d0d;
+    color: #f2f3ef;
+    font-size: 13px;
+  }
+  .prompt {
+    color: #8aca9b;
+    font-family: var(--mono);
+  }
+  .copy {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 8px;
+    background: #ffffff14;
+    color: #c9ccc5;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background-color 200ms;
+  }
+  .copy:hover {
+    background: #ffffff24;
+  }
+  .copy.is-copied {
+    color: #8aca9b;
+  }
+  .note {
+    padding: 14px 20px 20px;
+    color: var(--muted);
+    font-size: 13.5px;
+  }
+  @media (max-width: 860px) {
+    .explorer {
+      grid-template-columns: 1fr;
+    }
+    .tabs {
+      display: flex;
+      overflow-x: auto;
+      scrollbar-width: none;
+      margin-inline: -16px;
+      padding-inline: 16px;
+    }
+    .tabs button {
+      flex-shrink: 0;
+      padding: 10px 14px;
+    }
+    .tabs code {
+      display: none;
+    }
+    .legend {
+      padding-inline: 20px;
+    }
+  }
+  @keyframes fill {
+    to {
+      transform: scaleX(1);
+    }
+  }
+  @keyframes row-in {
+    from {
+      opacity: 0;
+      transform: translateX(-8px);
+      filter: blur(4px);
+    }
+  }
+</style>

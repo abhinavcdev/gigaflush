@@ -1,0 +1,59 @@
+---
+title: "Deleting node_modules on Windows takes forever. Here's why, and how to fix it"
+description: "Why Explorer crawls when deleting node_modules on Windows (small files, Defender, the Recycle Bin and long paths) and faster ways to do it: rd, rimraf, robocopy and Dev Drive."
+date: 2026-11-01
+tags: ["windows", "node_modules", "how-to"]
+keywords: ["delete node_modules windows slow", "node_modules delete windows fast", "rimraf windows", "robocopy delete folder fast", "path too long delete windows", "dev drive node_modules", "remove-item node_modules", "windows defender node_modules slow"]
+accent: "#4cc2ff"
+figure: two-lanes
+---
+
+import CommandTabs from "../../components/react/CommandTabs.tsx";
+import Callout from "../../components/blog/Callout.astro";
+
+Right-click → Delete on a `node_modules` folder in Windows Explorer, and you can watch the "Calculating…" dialog for minutes. On macOS the same folder disappears in seconds. Here's what's going on, and how to make it fast.
+
+## Why it's slow
+
+- **Lots of small files.** A typical `node_modules` holds tens of thousands of files. On NTFS, per-file overhead dominates, and deletion is about the file count far more than the gigabytes.
+- **Explorer does extra work.** It enumerates everything first to show progress and (unless you hold Shift) moves the whole tree to the Recycle Bin, which is far slower than deleting.
+- **Real-time antivirus.** Microsoft Defender inspects file operations, and with this many files the overhead is noticeable.
+- **Long paths.** Deeply nested dependencies can exceed the legacy 260-character `MAX_PATH` limit, which makes some tools fail halfway with "path too long".
+
+## Faster ways to delete
+
+<CommandTabs
+  client:visible
+  id="win"
+  tabs={[
+    { label: "cmd: rd", code: "rd /s /q node_modules", note: "Skips the Recycle Bin and the progress dialog. Usually much faster than Explorer." },
+    { label: "PowerShell", code: "Remove-Item -Recurse -Force .\\node_modules" },
+    { label: "rimraf", code: "npx rimraf node_modules", note: "The Node.js rm -rf. Handles long paths and retries locked files." },
+    { label: "robocopy trick", code: "mkdir empty\nrobocopy empty node_modules /MIR /NFL /NDL /NJH /NJS\nrd /s /q node_modules\nrd empty", note: "Mirrors an empty folder over node_modules, which deletes its contents and copes with very long paths." },
+  ]}
+/>
+
+<Callout type="tip" title="Close what's watching the folder">
+  "Access denied" or "being used by another process" usually means a dev server, file watcher, terminal or your editor's TypeScript server still has files open. Stop them first.
+</Callout>
+
+## Fix long paths once
+
+Windows 10 and 11 can lift the 260-character limit for apps that support it. Enable it with Group Policy (Computer Configuration → Administrative Templates → System → Filesystem → *Enable Win32 long paths*) or this registry value, from an elevated PowerShell:
+
+```powershell
+New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" `
+  -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
+```
+
+Git has its own switch: `git config --system core.longpaths true`.
+
+## Make the problem smaller: Dev Drive
+
+Windows 11 supports a **Dev Drive**: a volume formatted with ReFS and tuned for development workloads, where Defender can run in a performance mode that defers scans. Putting your repositories (and package caches) on a Dev Drive speeds up installs, builds and deletions. Set it up in Settings → System → Storage → Advanced storage settings → Disks & volumes → Create Dev Drive.
+
+## Don't delete them one by one
+
+Most people asking this question don't have one `node_modules` to delete. They have thirty. To clear them all from the command line, see [how to delete all node_modules folders](/blog/delete-all-node-modules) (it has PowerShell and cmd versions).
+
+Or use [Gigaflush for Windows](/windows). It sits in the system tray, scans your projects folder for `node_modules` and other build folders (Rust, Flutter, Python, Gradle, Maven), shows sizes, and deletes the ones you pick directly, without the Recycle Bin or Explorer's progress dialog, with live progress per folder.

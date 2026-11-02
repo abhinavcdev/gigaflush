@@ -1,0 +1,88 @@
+---
+title: "Python, Gradle and Maven caches: what you can safely delete"
+description: "A guide to .pytest_cache, .mypy_cache, .ruff_cache, __pycache__, virtual environments, Gradle's .gradle and build folders, and Maven's target: which are disposable and which will hurt."
+date: 2026-11-01
+tags: ["python", "gradle", "maven", "disk space"]
+keywords: ["delete pytest_cache", "mypy_cache size", "ruff cache clean", "delete __pycache__ recursively", "is it safe to delete .gradle folder", "gradle clean", "mvn clean target folder", "delete .m2 repository", "python cache folders"]
+accent: "#8aca9b"
+figure: locked-bins
+---
+
+import CommandTabs from "../../components/react/CommandTabs.tsx";
+import SafeToDelete from "../../components/react/SafeToDelete.tsx";
+import Callout from "../../components/blog/Callout.astro";
+
+Python and JVM projects don't have one giant `node_modules`. They have a handful of caches and build folders that are easy to overlook. Some are disposable, and at least one will cost you an afternoon if you delete it by mistake.
+
+## Python
+
+<SafeToDelete
+  client:visible
+  items={[
+    { name: ".pytest_cache", safe: true, why: "pytest's cache of last-failed tests and plugin data. Recreated on the next run." },
+    { name: ".mypy_cache", safe: true, why: "mypy's incremental type-check cache. The next run is slower, then fast again." },
+    { name: ".ruff_cache", safe: true, why: "Ruff's lint cache. Rebuilt instantly." },
+    { name: "__pycache__", safe: true, why: "Compiled bytecode. Python regenerates it on import." },
+    { name: ".venv / venv", safe: false, why: "Your installed packages. Deleting means recreating the environment and reinstalling." },
+    { name: "*.egg-info", safe: true, why: "Packaging metadata, rebuilt by pip install -e . Small." },
+  ]}
+/>
+
+The tool caches can grow surprisingly large on big codebases, with `.mypy_cache` the usual leader. Each tool can clear its own:
+
+<CommandTabs
+  client:visible
+  id="py"
+  tabs={[
+    { label: "pytest", code: "pytest --cache-clear" },
+    { label: "mypy", code: "rm -rf .mypy_cache" },
+    { label: "Ruff", code: "ruff clean" },
+    { label: "__pycache__", code: "find . -name __pycache__ -type d -prune -not -path './.venv/*' -exec rm -rf {} +" },
+  ]}
+/>
+
+<Callout type="warn" title="Leave virtual environments alone">
+  A `.venv` looks like a cache, but it's your installed dependencies. You can rebuild it from `requirements.txt` or `pyproject.toml`, but that isn't automatic like `npm install`. Gigaflush never lists virtual environments for that reason.
+</Callout>
+
+Gigaflush cleans `.pytest_cache`, `.mypy_cache` and `.ruff_cache` when they sit next to a `pyproject.toml`, `setup.py` or `requirements.txt`. It doesn't remove `__pycache__` today. Those are usually small and Python recreates them constantly.
+
+## Gradle
+
+Gradle uses two kinds of storage, and the difference matters:
+
+- **Project `.gradle/`** sits next to `build.gradle` or `settings.gradle`. It holds per-project caches and file hashes, and is safe to delete when no build is running.
+- **Project `build/`** holds compiled classes, test results and APKs. `./gradlew clean` removes it.
+- **Global `~/.gradle/`** holds downloaded dependencies and wrapper distributions for every project. Deleting it is safe but forces a large re-download.
+
+<CommandTabs
+  client:visible
+  id="gradle"
+  tabs={[
+    { label: "Project build output", code: "./gradlew clean" },
+    { label: "Stop daemons first", code: "./gradlew --stop" },
+    { label: "Global cache size", code: "du -sh ~/.gradle/caches ~/.gradle/wrapper" },
+  ]}
+/>
+
+Gigaflush removes the **project-local** `.gradle` folder (when a Gradle build file is beside it) and deliberately never touches the global `~/.gradle`.
+
+## Maven
+
+- **`target/`** next to `pom.xml` holds compiled classes and packaged JARs. `mvn clean` deletes it, and it's safe.
+- **`~/.m2/repository`** is the local repository of every dependency you've downloaded. Safe to delete in theory, but you'll re-download everything, and any artifacts you installed locally with `mvn install` are gone.
+
+<CommandTabs
+  client:visible
+  id="maven"
+  tabs={[
+    { label: "One project", code: "mvn clean" },
+    { label: "All projects", code: "find . -name pom.xml -execdir mvn -q clean \\;" },
+  ]}
+/>
+
+Gigaflush lists a `target` folder as Maven only when `pom.xml` is next to it, which keeps it from confusing Maven output with Rust's `target`.
+
+## The short version
+
+Tool caches and build output: delete freely. Virtual environments and global dependency caches: delete only on purpose. For the "delete freely" pile across all your projects at once, [Gigaflush](/) does it in one scan.

@@ -1,0 +1,207 @@
+---
+const guards = [
+  { title: "Allowlist, not guesswork", body: "Only known generated folders count, and only beside a real project marker." },
+  { title: "Nothing preselected", body: "Every folder starts unchecked. You choose what goes." },
+  { title: "Exact paths, every time", body: "The review sheet lists each full path and how to rebuild it before the destructive button is in reach." },
+  { title: "Checked again at delete time", body: "The Rust backend revalidates names and markers right before removal and refuses symlinks and parent traversal." },
+];
+---
+
+<section class="section" id="safety">
+  <div class="grid">
+    <div>
+      <div class="section-head" data-reveal>
+        <h2>Built to delete. <span class="dim">Never to surprise.</span></h2>
+        <p>Removing gigabytes should feel decisive, not risky. The filesystem stays in front of you, and the guardrails live in the backend, where the interface can't talk its way past them.</p>
+      </div>
+      <ul class="guards">
+        {
+          guards.map((g, i) => (
+            <li data-reveal style={`--d:${i}`}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" class="check">
+                <circle cx="12" cy="12" r="10" pathLength="100" />
+                <path d="M7.5 12.5l3 3 6-6.5" pathLength="100" />
+              </svg>
+              <div>
+                <b>{g.title}</b>
+                <p>{g.body}</p>
+              </div>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+
+    <div class="stage" data-reveal style="--d:2" aria-hidden="true">
+      <div class="sheet" data-spring-tilt="10">
+        <b>Remove 2 folders?</b>
+        <p>Permanently remove 4.4 GB. Stop builds and dev servers first. Run <code>flutter pub get</code> and reinstall with your package manager before using these projects again.</p>
+        <div class="paths">
+          <code>~/Developer/atlas-mobile/build</code>
+          <code>~/Developer/studio-web/node_modules</code>
+        </div>
+        <div class="actions">
+          <span class="btn">Cancel</span>
+          <span class="btn danger">Remove 4.4 GB</span>
+        </div>
+      </div>
+      <span class="tag t1">Focus starts on Cancel</span>
+      <span class="tag t2">Full paths, never truncated</span>
+    </div>
+  </div>
+</section>
+
+
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 72px;
+    align-items: center;
+  }
+  .section-head {
+    margin-bottom: 40px;
+  }
+  .guards {
+    list-style: none;
+    display: grid;
+    gap: 22px;
+  }
+  .guards li {
+    display: flex;
+    gap: 14px;
+  }
+  .check {
+    color: var(--success);
+    margin-top: 1px;
+  }
+  .check circle,
+  .check path {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    transition: stroke-dashoffset 900ms var(--ease);
+    transition-delay: calc(var(--d, 0) * 120ms + 200ms);
+  }
+  .check path {
+    transition-delay: calc(var(--d, 0) * 120ms + 600ms);
+  }
+  :global(.is-in) .check circle,
+  :global(.is-in) .check path,
+  :global(html:not(.js)) .check circle,
+  :global(html:not(.js)) .check path {
+    stroke-dashoffset: 0;
+  }
+  .guards b {
+    font-weight: 600;
+    font-size: 15.5px;
+  }
+  .guards p {
+    color: var(--muted);
+    font-size: 14.5px;
+    margin-top: 3px;
+  }
+  .stage {
+    --rx: 0deg;
+    --ry: 0deg;
+    position: relative;
+    padding: 72px 40px;
+    border-radius: var(--radius);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    perspective: 900px;
+  }
+  .sheet {
+    max-width: 390px;
+    margin: 0 auto;
+    padding: 26px;
+    border-radius: var(--radius);
+    background: var(--content);
+    box-shadow: var(--panel-shadow);
+    font-size: 13px;
+
+  }
+  .sheet b {
+    font-size: 20px;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+  }
+  .sheet p {
+    color: var(--muted);
+    margin-top: 10px;
+    font-size: 12.5px;
+  }
+  .sheet code {
+    font-size: 11px;
+  }
+  .paths {
+    margin-top: 16px;
+    border-top: 1px solid var(--line);
+  }
+  .paths code {
+    display: block;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--line);
+    overflow-wrap: anywhere;
+  }
+  .actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+  }
+  .btn {
+    flex: 1;
+    display: grid;
+    place-items: center;
+    height: 38px;
+    border-radius: 8px;
+    background: var(--control);
+    font-size: 12.5px;
+    font-weight: 500;
+  }
+  .btn:first-child {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .btn.danger {
+    background: #bf332e;
+    color: #fff;
+  }
+  .tag {
+    position: absolute;
+    padding: 5px 10px;
+    border-radius: 6px;
+    background: var(--content);
+    border: 1px solid var(--line);
+    box-shadow: var(--card-shadow);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    animation: float 6s ease-in-out infinite alternate;
+  }
+  .t1 {
+    left: 20px;
+    bottom: 28px;
+  }
+  .t2 {
+    right: 20px;
+    top: 26px;
+    animation-delay: -3s;
+  }
+  @media (max-width: 900px) {
+    .grid {
+      grid-template-columns: 1fr;
+      gap: 48px;
+    }
+    .stage {
+      padding: 64px 16px;
+    }
+  }
+  @keyframes float {
+    from {
+      transform: translateY(-4px);
+    }
+    to {
+      transform: translateY(4px);
+    }
+  }
+</style>

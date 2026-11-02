@@ -1,0 +1,390 @@
+---
+import Icon from "./Icon.astro";
+import NativeStack from "./react/bento/NativeStack.tsx";
+import LocalOnly from "./react/bento/LocalOnly.tsx";
+import ParallelScan from "./react/bento/ParallelScan.tsx";
+import { GITHUB_URL } from "../config";
+---
+
+<section class="section">
+  <div class="section-head" data-reveal>
+    <h2>A precise little instrument.</h2>
+    <p>Small enough to forget about, sharp enough to trust with your disk.</p>
+  </div>
+
+  <div class="bento">
+    <article class="card tray-card span2" data-reveal>
+      <div class="copy">
+        <h3>Lives in your tray</h3>
+        <p>Click the icon, scan, close. Menu bar on macOS, system tray on Windows and Linux. Click away or press Esc and it's gone.</p>
+      </div>
+      <div class="mini-bar" aria-hidden="true">
+        <span class="mb-items"><i></i><i></i><i></i></span>
+        <span class="mb-icon"><svg viewBox="150 150 724 724" fill="none" stroke-width="124"><path d="M687.3 317.3A262 262 0 1 0 774 512H552"></path></svg></span>
+        <span class="mb-time">9:41</span>
+        <div class="drop">
+          <b>7.9 GB</b>
+          <small>Estimated reclaimable</small>
+          <span class="drop-row"><i></i>atlas-mobile <em>3.2 GB</em></span>
+          <span class="drop-row"><i></i>search-index <em>2.4 GB</em></span>
+        </div>
+      </div>
+    </article>
+
+    <article class="card keys-card" data-reveal style="--d:1">
+      <div class="keys" aria-hidden="true">
+        <kbd class="k1">⌘</kbd><kbd class="k2">F</kbd>
+        <kbd class="k3">⌘</kbd><kbd class="k4">R</kbd>
+        <kbd class="k5 wide">esc</kbd>
+      </div>
+      <h3>Keyboard first</h3>
+      <p>Filter, rescan, dismiss. Ctrl on Windows and Linux. Focus lands where you expect.</p>
+    </article>
+
+    <article class="card theme-card" data-reveal>
+      <div class="split" aria-hidden="true">
+        <div class="side light"><i></i><i></i><i></i></div>
+        <div class="side dark"><i></i><i></i><i></i></div>
+      </div>
+      <h3>Light, dark, or system</h3>
+      <p>Follows your OS by default, with a one-click override in the titlebar.</p>
+    </article>
+
+    <article class="card code-card span2" data-reveal style="--d:1">
+      <div class="copy">
+        <h3>Read the code that deletes</h3>
+        <p>Gigaflush is open source under GPL-3.0. The rules that decide what can be removed are a few dozen readable lines of Rust.</p>
+        <a href={GITHUB_URL} class="link"><Icon name="ph:github-logo" size={16} /> Browse the source <span>→</span></a>
+      </div>
+      <pre aria-label="Excerpt from scanner.rs"><code><span class="c">// scanner.rs — every rule needs a sibling marker</span>
+<span class="k">match</span> name &#123;
+  <span class="s">"node_modules"</span> <span class="k">if</span> marker(<span class="s">"package.json"</span>) =&gt; …,
+  <span class="s">"target"</span> <span class="k">if</span> marker(<span class="s">"Cargo.toml"</span>) =&gt; …,
+  <span class="s">".build"</span> <span class="k">if</span> marker(<span class="s">"Package.swift"</span>) =&gt; …,
+  <span class="s">"target"</span> <span class="k">if</span> marker(<span class="s">"pom.xml"</span>) =&gt; …,
+  _ =&gt; <span class="k">return</span> <span class="t">None</span>,
+&#125;</code></pre>
+    </article>
+
+    <article class="card" data-reveal>
+      <NativeStack client:visible />
+      <h3>Small and native</h3>
+      <p>Built with Rust and Tauri on the system webview. No bundled browser runtime.</p>
+    </article>
+
+    <article class="card" data-reveal style="--d:1">
+      <LocalOnly client:visible />
+      <h3>No telemetry, no account</h3>
+      <p>Nothing about your files leaves your machine. The only request is a periodic check for a newer version on GitHub.</p>
+    </article>
+
+    <article class="card" data-reveal style="--d:2">
+      <ParallelScan client:visible />
+      <h3>Live, parallel scanning</h3>
+      <p>Results stream in as the walker finds them, batched so the list stays smooth past thousands of folders.</p>
+    </article>
+  </div>
+</section>
+
+<style>
+  .bento {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .card {
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    transition: border-color 300ms;
+  }
+  .card:hover {
+    border-color: var(--line-strong);
+  }
+  .span2 {
+    grid-column: span 2;
+    flex-direction: row;
+    align-items: center;
+    gap: 32px;
+  }
+  .copy {
+    flex: 1;
+    min-width: 0;
+  }
+  h3 {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  p {
+    color: var(--muted);
+    font-size: 14.5px;
+    margin-top: 8px;
+  }
+
+  /* Tray */
+  .mini-bar {
+    position: relative;
+    flex: 1;
+    align-self: flex-start;
+    height: 200px;
+    border-radius: 10px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+  }
+  .mini-bar::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 28px;
+    border-radius: 10px 10px 0 0;
+    background: color-mix(in srgb, var(--content) 60%, transparent);
+  }
+  .mb-items {
+    position: absolute;
+    left: 14px;
+    top: 10px;
+    display: flex;
+    gap: 10px;
+  }
+  .mb-items i {
+    width: 26px;
+    height: 7px;
+    border-radius: 4px;
+    background: var(--line-strong);
+  }
+  .mb-icon {
+    position: absolute;
+    right: 64px;
+    top: 4px;
+    width: 26px;
+    height: 20px;
+    display: grid;
+    place-items: center;
+    border-radius: 6px;
+    transition: background-color 200ms;
+  }
+  .mb-icon svg {
+    width: 12px;
+    height: 12px;
+    stroke-width: 124;
+  }
+  .mb-time {
+    position: absolute;
+    right: 14px;
+    top: 6px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .drop {
+    position: absolute;
+    right: 20px;
+    top: 34px;
+    width: 190px;
+    padding: 12px;
+    border-radius: 12px;
+    background: var(--content);
+    box-shadow: var(--panel-shadow);
+    font-size: 11px;
+    transform-origin: top right;
+    transition: transform 500ms var(--spring);
+  }
+  .tray-card:hover .drop {
+    transform: translateY(4px) scale(1.03);
+  }
+  .tray-card:hover .mb-icon {
+    background: color-mix(in srgb, var(--text) 14%, transparent);
+  }
+  .drop b {
+    display: block;
+    font-size: 20px;
+    letter-spacing: -0.03em;
+  }
+  .drop small {
+    display: block;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .drop-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 0;
+    border-top: 1px solid var(--line);
+  }
+  .drop-row i {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    border: 1.2px solid var(--line-strong);
+  }
+  .drop-row em {
+    margin-left: auto;
+    font-style: normal;
+    font-weight: 600;
+  }
+
+  /* Keys */
+  .keys {
+    display: grid;
+    grid-template-columns: repeat(4, 44px);
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  kbd {
+    display: grid;
+    place-items: center;
+    height: 44px;
+    border-radius: 10px;
+    background: var(--content);
+    border: 1px solid var(--line-strong);
+    box-shadow: 0 3px 0 var(--line-strong);
+    font-family: var(--sans);
+    font-size: 16px;
+    font-weight: 500;
+    transition:
+      transform 120ms,
+      box-shadow 120ms,
+      background-color 120ms;
+  }
+  .wide {
+    grid-column: span 2;
+    font-size: 13px;
+  }
+  .keys-card:hover kbd {
+    animation: press 1.8s var(--ease) infinite;
+  }
+  .keys-card:hover .k2 {
+    animation-delay: 60ms;
+  }
+  .keys-card:hover .k3 {
+    animation-delay: 600ms;
+  }
+  .keys-card:hover .k4 {
+    animation-delay: 660ms;
+  }
+  .keys-card:hover .k5 {
+    animation-delay: 1200ms;
+  }
+
+  /* Theme split */
+  .split {
+    position: relative;
+    display: flex;
+    height: 92px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    margin-bottom: 24px;
+  }
+  .side {
+    display: grid;
+    align-content: center;
+    gap: 7px;
+    padding: 0 16px;
+    flex: 1;
+    transition: flex 600ms var(--ease);
+  }
+  .side i {
+    height: 7px;
+    border-radius: 4px;
+  }
+  .side i:nth-child(2) {
+    width: 70%;
+  }
+  .side i:nth-child(3) {
+    width: 45%;
+  }
+  .light {
+    background: #f7f7f5;
+  }
+  .light i {
+    background: #d9dad5;
+  }
+  .dark {
+    background: #20211f;
+  }
+  .dark i {
+    background: #41443d;
+  }
+  .theme-card:hover .light {
+    flex: 0.25;
+  }
+  .theme-card:hover .dark {
+    flex: 1.75;
+  }
+
+  /* Code */
+  .code-card pre {
+    flex: 1.2;
+    min-width: 0;
+    overflow-x: auto;
+    padding: 18px 20px;
+    border-radius: 8px;
+    background: #0d0d0d;
+    color: #e6e7e3;
+    font-size: 12.5px;
+    line-height: 1.7;
+  }
+  .c {
+    color: #7b8077;
+  }
+  .k {
+    color: #ff8fa3;
+  }
+  .s {
+    color: #9fd7a9;
+  }
+  .t {
+    color: #9ccbff;
+  }
+  .link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 16px;
+    font-weight: 500;
+    font-size: 14px;
+  }
+  .link span {
+    transition: transform 300ms var(--ease);
+  }
+  .link:hover span {
+    transform: translateX(4px);
+  }
+
+  @media (max-width: 900px) {
+    .bento {
+      grid-template-columns: 1fr 1fr;
+    }
+    .span2 {
+      grid-column: 1 / -1;
+    }
+  }
+  @media (max-width: 640px) {
+    .bento {
+      grid-template-columns: 1fr;
+    }
+    .span2 {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .mini-bar {
+      align-self: stretch;
+      flex: none;
+    }
+  }
+  @keyframes press {
+    0%,
+    20%,
+    100% {
+      transform: none;
+      box-shadow: 0 3px 0 var(--line-strong);
+    }
+    8% {
+      transform: translateY(3px);
+      box-shadow: 0 0 0 var(--line-strong);
+      background: var(--selected);
+    }
+  }
+</style>

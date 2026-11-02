@@ -1,0 +1,161 @@
+---
+import { readingTime, formatDate, type Post } from "../../lib/blog";
+interface Props {
+  post: Post;
+  big?: boolean;
+}
+const { post, big = false } = Astro.props;
+---
+
+<a href={`/blog/${post.id}`} class:list={["card", "post", { big }]} style={`--post:${post.data.accent}`}>
+  <div class:list={["art", { "has-fig": post.data.figure }]} aria-hidden="true">
+    {
+      post.data.figure ? (
+        <>
+          <img class="fig-light" src={`/figures/${post.data.figure}-light.svg`} alt="" loading="lazy" decoding="async" width="600" height="380" />
+          <img class="fig-dark" src={`/figures/${post.data.figure}-dark.svg`} alt="" loading="lazy" decoding="async" width="600" height="380" />
+        </>
+      ) : (
+        <>
+          <i />
+          <i />
+          <i />
+        </>
+      )
+    }
+    <span class="glyph">{post.data.tags[0] ?? "dev"}</span>
+  </div>
+  <div class="body">
+    <p class="meta mono-label">{formatDate(post.data.date)} · {readingTime(post)} min read</p>
+    <h3>{post.data.title}</h3>
+    <p class="desc">{post.data.description}</p>
+    <span class="more more-link">Read article</span>
+  </div>
+</a>
+
+<style>
+  .post {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    transition: border-color 300ms;
+  }
+  .post:hover {
+    border-color: var(--line-strong);
+  }
+  .art {
+    position: relative;
+    height: 170px;
+    overflow: hidden;
+    border-bottom: 1px solid var(--line);
+    background:
+      radial-gradient(60% 90% at 85% 10%, color-mix(in srgb, var(--post) 40%, transparent), transparent 70%),
+      radial-gradient(50% 70% at 10% 100%, color-mix(in srgb, var(--post) 18%, transparent), transparent 70%),
+      var(--surface);
+  }
+  .big .art {
+    height: 300px;
+  }
+  .art.has-fig {
+    background: var(--surface);
+  }
+  .art img {
+    position: absolute;
+    inset: 8px 0 0;
+    width: 100%;
+    height: calc(100% - 8px);
+    object-fit: contain;
+    transform: scale(1.06);
+    transition: transform 700ms var(--ease);
+  }
+  .post:hover .art img {
+    transform: scale(1.12);
+  }
+  .fig-dark {
+    display: none;
+  }
+  :global(:root[data-theme="dark"]) .fig-light {
+    display: none;
+  }
+  :global(:root[data-theme="dark"]) .fig-dark {
+    display: block;
+  }
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-theme="light"])) .fig-light {
+      display: none;
+    }
+    :global(:root:not([data-theme="light"])) .fig-dark {
+      display: block;
+    }
+  }
+  .glyph {
+    position: absolute;
+    z-index: 1;
+    left: 20px;
+    bottom: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--content);
+    border: 1px solid var(--line);
+  }
+  .art i {
+    position: absolute;
+    right: 24px;
+    width: 46%;
+    height: 10px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--post) 55%, var(--content));
+    transition: transform 600ms var(--spring);
+  }
+  .art i:nth-of-type(1) {
+    top: 36px;
+  }
+  .art i:nth-of-type(2) {
+    top: 56px;
+    width: 34%;
+    opacity: 0.6;
+  }
+  .art i:nth-of-type(3) {
+    top: 76px;
+    width: 22%;
+    opacity: 0.35;
+  }
+  .post:hover .art i {
+    transform: translateX(-14px);
+  }
+  .post:hover .art i:nth-of-type(2) {
+    transform: translateX(-28px);
+  }
+  .post:hover .art i:nth-of-type(3) {
+    transform: translateX(-42px);
+  }
+  .body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 22px;
+  }
+  h3 {
+    margin-top: 10px;
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: -0.022em;
+    line-height: 1.25;
+    text-wrap: balance;
+  }
+  .big h3 {
+    font-size: clamp(24px, 3vw, 32px);
+  }
+  .desc {
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 14.5px;
+  }
+  .more {
+    margin-top: auto;
+    padding-top: 18px;
+    font-size: 15px;
+  }
+</style>

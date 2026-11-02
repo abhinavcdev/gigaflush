@@ -1,0 +1,267 @@
+---
+import Icon from "./Icon.astro";
+import { POLAR, PRICE, LINUX, GITHUB_URL } from "../config";
+const clone = `git clone ${GITHUB_URL}.git && cd gigaflush && npm install && npm run tauri:build`;
+---
+
+<section class="section" id="pricing">
+  <div class="section-head" data-reveal>
+    <h2>Open source. <span class="dim">Pay for the build.</span></h2>
+    <p>The code is free forever. A one-time {PRICE} gets you a signed, ready-to-run app and keeps the project going.</p>
+  </div>
+
+  <div class="plans" data-plans>
+    <article class="plan" data-os="mac" data-reveal>
+      <div class="plan-head">
+        <Icon name="ph:apple-logo" size={22} />
+        <h3>macOS</h3>
+        <span class="badge" hidden>Your system</span>
+      </div>
+      <div class="price"><b>{PRICE}</b><span>one-time</span></div>
+      <ul>
+        <li>Universal: Apple Silicon and Intel</li>
+        <li>Signed and notarized by Apple</li>
+        <li>Idle dev server cleanup</li>
+        <li>New versions in your Polar library</li>
+      </ul>
+      <a class="key key-primary buy" data-press href={POLAR.mac}>Buy for macOS <Icon name="ph:arrow-right" size={15} class="arrow" /></a>
+    </article>
+
+    <article class="plan" data-os="windows" data-reveal style="--d:1">
+      <div class="plan-head">
+        <Icon name="ph:windows-logo" size={22} />
+        <h3>Windows</h3>
+        <span class="badge" hidden>Your system</span>
+      </div>
+      <div class="price"><b>{PRICE}</b><span>one-time</span></div>
+      <ul>
+        <li>Windows 10 and 11, x64</li>
+        <li>Code-signed installer</li>
+        <li>New versions in your Polar library</li>
+      </ul>
+      <a class="key key-primary buy" data-press href={POLAR.windows}>Buy for Windows <Icon name="ph:arrow-right" size={15} class="arrow" /></a>
+    </article>
+
+    <article class="plan" data-os="linux" data-reveal style="--d:2">
+      <div class="plan-head">
+        <Icon name="ph:linux-logo" size={22} />
+        <h3>Linux</h3>
+        <span class="badge" hidden>Your system</span>
+      </div>
+      <div class="price"><b>Free</b><span>always</span></div>
+      <ul>
+        <li>x86_64 AppImage or .deb</li>
+        <li>SHA-256 checksums with every release</li>
+        <li>Idle dev server cleanup</li>
+        <li>Updates on GitHub Releases</li>
+      </ul>
+      <div class="linux-btns">
+        <a class="key key-primary buy" data-press href={LINUX.appimage}>AppImage</a>
+        <a class="key buy" data-press href={LINUX.deb}>.deb</a>
+      </div>
+    </article>
+  </div>
+
+  <div class="source card" data-reveal>
+    <div>
+      <b>Prefer to build it yourself?</b>
+      <p>Everything is on GitHub under GPL-3.0. You need Node, Rust, and the Tauri prerequisites.</p>
+    </div>
+    <div class="cmd">
+      <code data-clone>{clone}</code>
+      <button data-copy-clone aria-label="Copy build commands">Copy</button>
+    </div>
+  </div>
+  <p class="fine">Checkout, tax, and receipts are handled by <a href="https://polar.sh">Polar</a>. <a href={LINUX.sums}>Linux checksums</a> · <a href="/terms">Terms</a></p>
+</section>
+
+<script>
+  const ua = navigator.userAgent;
+  const os = /iPhone|iPad|Android/i.test(ua) ? null : /Mac/i.test(ua) ? "mac" : /Win/i.test(ua) ? "windows" : /Linux|X11|CrOS/i.test(ua) ? "linux" : null;
+  if (os) {
+    const plan = document.querySelector<HTMLElement>(`.plan[data-os="${os}"]`)!;
+    plan.classList.add("is-detected");
+    plan.querySelector<HTMLElement>(".badge")!.hidden = false;
+  }
+  const btn = document.querySelector<HTMLButtonElement>("[data-copy-clone]")!;
+  btn.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(document.querySelector("[data-clone]")!.textContent!);
+      btn.textContent = "Copied";
+      setTimeout(() => (btn.textContent = "Copy"), 1600);
+    } catch {}
+  });
+</script>
+
+<style>
+  .plans {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    align-items: stretch;
+  }
+  .plan {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 32px;
+    border-radius: var(--radius);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    transition:
+      transform 500ms var(--ease),
+      box-shadow 500ms var(--ease);
+  }
+  .plan:hover {
+    border-color: var(--line-strong);
+  }
+  .plan.is-detected {
+    background: var(--content);
+    border-color: var(--text);
+  }
+  .plan-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h3 {
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: -0.022em;
+  }
+  .badge {
+    margin-left: auto;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--control);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .price {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-top: 24px;
+  }
+  .price b {
+    font-family: var(--display);
+    font-size: 48px;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+  .price span {
+    color: var(--muted);
+    font-size: 14px;
+  }
+  ul {
+    list-style: none;
+    display: grid;
+    gap: 10px;
+    margin: 24px 0 32px;
+    color: var(--muted);
+    font-size: 15px;
+  }
+  li {
+    display: flex;
+    gap: 10px;
+  }
+  li::before {
+    content: "";
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    border-radius: 50%;
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-9'/%3E%3C/svg%3E") center / 10px no-repeat,
+      var(--success);
+  }
+  .buy {
+    margin-top: auto;
+    width: 100%;
+  }
+  .plan:not(.is-detected) .key-primary {
+    background: var(--control);
+    color: var(--text);
+    box-shadow: none;
+  }
+  .linux-btns {
+    display: flex;
+    gap: 8px;
+    margin-top: auto;
+  }
+  .linux-btns .buy {
+    flex: 1;
+    width: auto;
+  }
+  .source {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-top: 16px;
+    padding: 22px 24px;
+  }
+  .source b {
+    font-weight: 600;
+  }
+  .source p {
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 2px;
+  }
+  .cmd {
+    flex: 1.3;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 8px 8px 18px;
+    border-radius: var(--radius-sm);
+    background: #0d0d0d;
+    color: #e6e7e3;
+  }
+  .cmd code {
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+    white-space: nowrap;
+    font-size: 12px;
+    scrollbar-width: none;
+  }
+  .cmd button {
+    height: 30px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 999px;
+    background: #ffffff14;
+    color: #c9ccc5;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .cmd button:hover {
+    background: #ffffff24;
+  }
+  .fine {
+    margin-top: 20px;
+    text-align: center;
+    color: var(--faint);
+    font-size: 13px;
+  }
+  .fine a {
+    color: var(--muted);
+    text-decoration: underline;
+    text-decoration-color: var(--line-strong);
+    text-underline-offset: 3px;
+  }
+  @media (max-width: 900px) {
+    .plans {
+      grid-template-columns: 1fr;
+    }
+    .source {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+</style>

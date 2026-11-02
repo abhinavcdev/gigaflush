@@ -1,0 +1,24 @@
+# Gigaflush
+
+> Gigaflush is an open-source (GPL-3.0) menu-bar / system-tray app for macOS, Windows and Linux that finds rebuildable developer folders across your projects (node_modules, Rust target, Flutter build and .dart_tool, Python .pytest_cache/.mypy_cache/.ruff_cache, Swift .build, Gradle .gradle, Maven target), shows their sizes, and deletes the ones you choose after a review step. Folders are only matched when the project's marker file (package.json, Cargo.toml, pubspec.yaml, pyproject.toml, Package.swift, build.gradle, pom.xml) is beside them. Signed macOS and Windows builds cost $4.99 each; Linux builds are free; the source is on GitHub.
+
+## Guides
+- [Is it safe to delete node_modules?](https://gigaflush.app/clean/node-modules)
+- [Clean Rust target folders](https://gigaflush.app/clean/rust-target)
+- [Clean Flutter build and .dart_tool](https://gigaflush.app/clean/flutter-build)
+- [Python tool caches](https://gigaflush.app/clean/python-cache)
+- [Swift .build](https://gigaflush.app/clean/swift-build)
+- [Gradle .gradle](https://gigaflush.app/clean/gradle-cache)
+- [Maven target](https://gigaflush.app/clean/maven-target)
+
+## Articles
+- [How to delete all node_modules folders](https://gigaflush.app/blog/delete-all-node-modules)
+- [Vibe coding is eating your disk](https://gigaflush.app/blog/vibe-coding-disk-space)
+- [Why is node_modules so big?](https://gigaflush.app/blog/why-is-node-modules-so-big)
+- [Rust target folder size](https://gigaflush.app/blog/rust-target-folder-size)
+- [Free up disk space on a Mac (developers)](https://gigaflush.app/blog/free-up-disk-space-mac-developers)
+- [npkill vs kondo vs Gigaflush](https://gigaflush.app/blog/npkill-vs-kondo-vs-gigaflush)
+
+## Product
+- [Pricing and downloads](https://gigaflush.app/#pricing)
+- [Source code](https://github.com/abhinavcdev/gigaflush)

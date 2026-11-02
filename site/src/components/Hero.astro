@@ -1,0 +1,635 @@
+---
+import AppDemo from "./AppDemo.astro";
+import Icon from "./Icon.astro";
+import { GITHUB_URL, PRICE } from "../config";
+
+// Mono logos at rest (Devicon), brand color on hover (Iconify "logos").
+// Rust and Gradle brand marks are near-black, so they brighten instead.
+const logos = [
+  { name: "Node.js", mono: "devicon-plain:nodejs", color: "logos:nodejs-icon", folder: "node_modules", href: "/clean/node-modules" },
+  { name: "Rust", mono: "devicon-plain:rust", color: null, folder: "target", href: "/clean/rust-target" },
+  { name: "Flutter", mono: "devicon-plain:flutter", color: "logos:flutter", folder: "build", href: "/clean/flutter-build" },
+  { name: "Dart", mono: "devicon-plain:dart", color: "logos:dart", folder: ".dart_tool", href: "/clean/flutter-build" },
+  { name: "Python", mono: "devicon-plain:python", color: "logos:python", folder: ".mypy_cache", href: "/clean/python-cache" },
+  { name: "Swift", mono: "devicon-plain:swift", color: "logos:swift", folder: ".build", href: "/clean/swift-build" },
+  { name: "Gradle", mono: "devicon-plain:gradle", color: null, folder: ".gradle", href: "/clean/gradle-cache" },
+  { name: "Maven", mono: "devicon-plain:maven", color: "logos:maven", folder: "target", href: "/clean/maven-target" },
+];
+---
+
+<section class="hero frame" id="top">
+  <div class="grid">
+    <div class="left">
+      <span class="cross" style="top:-7px; right:-7px"></span>
+      <div class="copy">
+        <h1>
+          <span class="line"><span class="li" style="--t:160ms">Your disk isn't full.</span></span>
+          <span class="line"><span class="li" style="--t:280ms">It's <span class="folder-name">node_modules</span>.</span></span>
+        </h1>
+        <p class="lede enter" style="--t:520ms">
+          Find the dependencies and build files eating your disk, and the dev servers your agents forgot. Review everything. Keep your code.
+        </p>
+        <div class="ctas enter" style="--t:640ms">
+          <a href="#pricing" class="key key-primary" data-press>
+            <span data-hero-label>Get Gigaflush</span>
+            <Icon name="ph:arrow-right" size={16} class="arrow" />
+          </a>
+          <a href="#how" class="more-link">See how it works</a>
+        </div>
+        <p class="note enter" style="--t:760ms">
+          Free and open source on <a href={GITHUB_URL}>GitHub</a>. Signed builds {PRICE}. Linux is free.
+        </p>
+      </div>
+
+      <ul class="logos" aria-label="Supported ecosystems">
+        {
+          logos.map((l, i) => (
+            <li style={`--i:${i}`}>
+              <a href={l.href} data-press aria-label={`Clean ${l.name} ${l.folder}`} title={`${l.name} · ${l.folder}`}>
+                <span class="logo-art">
+                  <Icon name={l.mono} size={26} class="mono" />
+                  {l.color ? <Icon name={l.color} size={26} class="color" /> : <Icon name={l.mono} size={26} class="color tint" />}
+                </span>
+                <code>{l.folder}</code>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+
+    <div class="right" data-stage>
+      <canvas class="dither" data-dither aria-hidden="true"></canvas>
+      <div class="menubar">
+        <span class="mb-left"><Icon name="ph:apple-logo-fill" size={15} /><b>Terminal</b><span>Shell</span><span>Edit</span><span>View</span></span>
+        <span class="mb-right">
+          <span class="hint" data-hint>Click the icon</span>
+          <button class="tray is-open" data-tray aria-label="Toggle the Gigaflush panel" aria-expanded="true">
+            <svg viewBox="150 150 724 724" fill="none"><path d="M687.3 317.3A262 262 0 1 0 774 512H552"></path></svg>
+          </button>
+          <Icon name="ph:wifi-high-bold" size={15} />
+          <Icon name="ph:battery-high-bold" size={18} />
+          <span data-clock>9:41</span>
+        </span>
+      </div>
+      <div class="window" data-window>
+        <AppDemo />
+      </div>
+      <p class="drag-hint" aria-hidden="true"><Icon name="ph:hand-grabbing" size={14} /> Interactive demo · example projects</p>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { animate } from "motion";
+  import { tethered, BOUNCY, SPRING } from "../lib/physics";
+
+  const stage = document.querySelector<HTMLElement>("[data-stage]")!;
+  const win = stage.querySelector<HTMLElement>("[data-window]")!;
+  const tray = stage.querySelector<HTMLButtonElement>("[data-tray]")!;
+  const hint = stage.querySelector<HTMLElement>("[data-hint]")!;
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // Platform-aware CTA.
+  const ua = navigator.userAgent;
+  const os = /iPhone|iPad|Android/i.test(ua) ? null : /Mac/i.test(ua) ? "mac" : /Win/i.test(ua) ? "windows" : /Linux|X11|CrOS/i.test(ua) ? "linux" : null;
+  const label = document.querySelector("[data-hero-label]")!;
+  if (os === "mac") label.textContent = "Get it for Mac";
+  if (os === "windows") label.textContent = "Get it for Windows";
+  if (os === "linux") label.textContent = "Download for Linux";
+
+  // Clock.
+  const tick = () => {
+    const t = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    stage.querySelectorAll("[data-clock]").forEach((el) => (el.textContent = t));
+  };
+  tick();
+  setInterval(tick, 15000);
+
+  // The panel drops out of the tray on a spring, like the real app.
+  let open = true;
+  if (!reduce) {
+    win.style.opacity = "0";
+    setTimeout(() => {
+      animate(win, { opacity: [0, 1], y: [-36, 0], scale: [0.92, 1] }, { ...BOUNCY, opacity: { duration: 0.25 } });
+    }, 900);
+  }
+  tray.addEventListener("click", () => {
+    open = !open;
+    tray.classList.toggle("is-open", open);
+    tray.setAttribute("aria-expanded", String(open));
+    hint.classList.add("is-gone");
+    animate(tray, { scale: [0.85, 1] }, BOUNCY);
+    if (reduce) {
+      win.style.visibility = open ? "visible" : "hidden";
+      return;
+    }
+    if (open) {
+      win.style.visibility = "visible";
+      animate(win, { opacity: 1, y: 0, scale: 1 }, { ...BOUNCY, opacity: { duration: 0.2 } });
+    } else {
+      animate(win, { opacity: 0, y: -28, scale: 0.94 }, { ...SPRING, opacity: { duration: 0.18 } }).then(() => {
+        if (!open) win.style.visibility = "hidden";
+      });
+    }
+  });
+  tethered(win, win);
+
+  // ── Dithered landscape ─────────────────────────────────────────────
+  // Procedural ridges and drifting clouds, shaded and run through a 4×4
+  // Bayer matrix so it reads like a 1-bit photograph.
+  const canvas = stage.querySelector<HTMLCanvasElement>("[data-dither]")!;
+  const ctx = canvas.getContext("2d")!;
+  const PX = 2;
+  const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) => (v + 0.5) / 16);
+  const hash = (x: number, y: number) => {
+    const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+    return s - Math.floor(s);
+  };
+  const smooth = (t: number) => t * t * (3 - 2 * t);
+  const noise = (x: number, y: number) => {
+    const xi = Math.floor(x), yi = Math.floor(y);
+    const xf = smooth(x - xi), yf = smooth(y - yi);
+    const a = hash(xi, yi), b = hash(xi + 1, yi), c = hash(xi, yi + 1), d = hash(xi + 1, yi + 1);
+    return a + (b - a) * xf + (c - a) * yf + (a - b - c + d) * xf * yf;
+  };
+  const fbm = (x: number, y: number) => noise(x, y) * 0.55 + noise(x * 2.1, y * 2.1) * 0.28 + noise(x * 4.3, y * 4.3) * 0.17;
+
+  let W = 0, H = 0, terrain: Float32Array, mask: Uint8Array, img: ImageData;
+  function build() {
+    const r = canvas.getBoundingClientRect();
+    W = Math.max(1, Math.ceil(r.width / PX));
+    H = Math.max(1, Math.ceil(r.height / PX));
+    canvas.width = W;
+    canvas.height = H;
+    img = ctx.createImageData(W, H);
+    terrain = new Float32Array(W * H);
+    mask = new Uint8Array(W * H);
+    // Back to front: distant ranges are hazy and light, near ones dark with
+    // sunlit faces picked out by the slope.
+    const layers = [
+      { base: 0.4, amp: 0.2, freq: 1.6, haze: 0.62, seed: 3 },
+      { base: 0.55, amp: 0.16, freq: 2.6, haze: 0.42, seed: 11 },
+      { base: 0.7, amp: 0.12, freq: 4.2, haze: 0.24, seed: 23 },
+      { base: 0.86, amp: 0.08, freq: 6.5, haze: 0.08, seed: 37 },
+    ];
+    const ridgeAt = (u: number, L: (typeof layers)[number]) => {
+      const n = fbm(u * L.freq + L.seed, L.seed * 0.7);
+      const sharp = 1 - Math.abs(n * 2 - 1); // ridged noise: pointy peaks
+      return L.base - L.amp * (sharp * 1.4 + n * 0.4 - 0.5);
+    };
+    for (const L of layers) {
+      for (let x = 0; x < W; x++) {
+        const u = x / W;
+        const ridge = ridgeAt(u, L);
+        const slope = (ridgeAt(u + 1 / W, L) - ridge) * W; // >0: face turns toward light
+        const top = Math.max(0, Math.floor(ridge * H));
+        for (let y = top; y < H; y++) {
+          const v = y / H;
+          const below = v - ridge;
+          const light = Math.max(0, Math.min(1, 0.5 + slope * 0.9));
+          const rock = fbm(u * 60 + L.seed, v * 60) * 0.35 + fbm(u * 14, v * 22 + L.seed) * 0.25;
+          const snow = below < 0.05 ? (1 - below / 0.05) * 0.35 : 0;
+          terrain[y * W + x] = Math.min(1, L.haze + light * 0.38 * (1 - L.haze) + rock - below * 1.1 + snow);
+          mask[y * W + x] = 1;
+        }
+      }
+    }
+  }
+
+  let t0 = performance.now();
+  function render(now: number) {
+    const css = getComputedStyle(stage);
+    const ink = css.getPropertyValue("--dither-ink").trim() || "#d9dad5";
+    const bg = css.getPropertyValue("--dither-bg").trim() || "#0b0b0b";
+    const p = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+    const [ir, ig, ib] = p(ink), [br, bgc, bb] = p(bg);
+    const time = (now - t0) / 1000;
+    const data = img.data;
+    for (let y = 0; y < H; y++) {
+      const v = y / H;
+      for (let x = 0; x < W; x++) {
+        const i = y * W + x;
+        let lum: number;
+        if (mask[i]) lum = terrain[i];
+        else {
+          const u = x / W;
+          const cloud = fbm(u * 2.4 + time * 0.035, v * 5 - time * 0.008);
+          lum = 0.04 + v * 0.22 + Math.max(0, cloud - 0.5) * 2.2;
+        }
+        const on = lum > BAYER[(y & 3) * 4 + (x & 3)];
+        const o = i * 4;
+        data[o] = on ? ir : br;
+        data[o + 1] = on ? ig : bgc;
+        data[o + 2] = on ? ib : bb;
+        data[o + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  let visible = true;
+  let last = 0;
+  const loop = (now: number) => {
+    if (visible && now - last > 90) {
+      render(now);
+      last = now;
+    }
+    if (!reduce) requestAnimationFrame(loop);
+  };
+  build();
+  render(performance.now());
+  if (!reduce) requestAnimationFrame(loop);
+  new IntersectionObserver(([e]) => (visible = e.isIntersecting)).observe(stage);
+  new ResizeObserver(() => {
+    build();
+    render(performance.now());
+  }).observe(canvas);
+  new MutationObserver(() => render(performance.now())).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+</script>
+
+<style>
+  /* Keep the live panel legible on short screens and bounded on tall ones. */
+  .grid {
+    --hero-h: clamp(620px, calc(100svh - 73px), 820px);
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    height: var(--hero-h);
+  }
+  .left {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border-right: 1px solid var(--line);
+  }
+  .copy {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: clamp(28px, 5vh, 64px) 56px;
+    container-type: inline-size;
+  }
+  h1 {
+    margin-top: 0;
+    font-family: var(--display);
+    font-size: clamp(40px, min(11.5cqi, 8vh), 72px);
+    font-weight: 500;
+    line-height: 1.12;
+    letter-spacing: -0.03em;
+  }
+  .line {
+    display: block;
+    overflow: hidden;
+    padding-bottom: 0.1em;
+    margin-bottom: -0.1em;
+    white-space: nowrap;
+  }
+  .li {
+    display: inline-block;
+    animation: line-up 700ms var(--ease) both;
+    animation-delay: var(--t);
+  }
+  .lede {
+    max-width: 30em;
+    margin-top: clamp(16px, 2.8vh, 28px);
+    font-size: clamp(17px, 2.2vh, 19px);
+    line-height: 1.47;
+    letter-spacing: -0.016em;
+    color: var(--muted);
+  }
+  .lede code {
+    font-size: 0.82em;
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: var(--control);
+    color: var(--text);
+  }
+  .ctas {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 24px;
+    margin-top: clamp(22px, 3.6vh, 36px);
+  }
+  .ctas .key {
+    height: 48px;
+    padding: 0 26px;
+    font-size: 17px;
+  }
+  .ctas .more-link {
+    font-size: 17px;
+  }
+  .note {
+    margin-top: clamp(14px, 2.4vh, 24px);
+    font-size: 14px;
+    color: var(--faint);
+  }
+  .note a {
+    color: var(--muted);
+    text-decoration: underline;
+    text-decoration-color: var(--line-strong);
+    text-underline-offset: 3px;
+  }
+  .note a:hover {
+    color: var(--text);
+  }
+  .enter {
+    animation: rise-in 600ms var(--ease) both;
+    animation-delay: var(--t);
+  }
+
+  .logos {
+    position: relative;
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    border-top: 1px solid var(--line);
+  }
+  .logos li {
+    border-right: 1px solid var(--line);
+    animation: rise-in 900ms var(--ease) both;
+    animation-delay: calc(820ms + var(--i) * 50ms);
+  }
+  .logos li:last-child {
+    border-right: 0;
+  }
+  .logos a {
+    position: relative;
+    height: clamp(72px, 11vh, 96px);
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    transition: background-color 300ms;
+  }
+  .logo-art {
+    display: grid;
+    transition: transform 500ms var(--spring);
+  }
+  .logo-art :global(svg) {
+    grid-area: 1 / 1;
+    width: 26px;
+    height: 26px;
+    transition:
+      opacity 300ms,
+      filter 300ms;
+  }
+  .logo-art :global(.mono) {
+    color: var(--faint);
+  }
+  .logo-art :global(.color) {
+    opacity: 0;
+    filter: blur(4px);
+  }
+  .logo-art :global(.tint) {
+    color: var(--text);
+  }
+  .logos code {
+    position: absolute;
+    bottom: 9px;
+    font-size: 11px;
+    color: var(--muted);
+    opacity: 0;
+    transform: translateY(6px);
+    transition:
+      opacity 300ms,
+      transform 450ms var(--spring);
+  }
+  .logos a:hover {
+    background: var(--surface);
+  }
+  .logos a:focus-visible .logo-art,
+  .logos a:hover .logo-art {
+    transform: translateY(-8px) scale(1.08);
+  }
+  .logos a:hover :global(.mono) {
+    opacity: 0;
+  }
+  .logos a:hover :global(.color) {
+    opacity: 1;
+    filter: none;
+  }
+  .logos a:hover code {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Ink is the landscape, paper is the sky. */
+  .right {
+    --dither-ink: #b7b9ae;
+    --dither-bg: #eeeee7;
+    position: relative;
+    overflow: hidden;
+  }
+  :global(:root[data-theme="dark"]) .right {
+    --dither-ink: #626b5c;
+    --dither-bg: #20261f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-theme="light"])) .right {
+      --dither-ink: #626b5c;
+      --dither-bg: #20261f;
+    }
+  }
+  .dither {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+  }
+  .menubar {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    font-size: 13px;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    background: color-mix(in srgb, var(--page) 70%, transparent);
+    backdrop-filter: blur(24px) saturate(1.8);
+    -webkit-backdrop-filter: blur(24px) saturate(1.8);
+    border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+    z-index: 3;
+  }
+  .mb-left,
+  .mb-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .mb-left span {
+    color: color-mix(in srgb, var(--text) 80%, transparent);
+  }
+  .tray {
+    width: 30px;
+    height: 22px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    transition: background-color 200ms;
+  }
+  .tray svg {
+    width: 14px;
+    height: 14px;
+    stroke-width: 124;
+  }
+  .tray.is-open,
+  .tray:hover {
+    background: color-mix(in srgb, var(--text) 14%, transparent);
+  }
+  .hint {
+    position: relative;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--text);
+    color: var(--page);
+    font-size: 11.5px;
+    font-weight: 500;
+    
+    transition: opacity 300ms;
+  }
+  .hint::after {
+    content: "";
+    position: absolute;
+    right: -4px;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    background: var(--text);
+    transform: translateY(-50%) rotate(45deg);
+    border-radius: 1px;
+  }
+  .hint.is-gone {
+    opacity: 0;
+    pointer-events: none;
+  }
+  /* The panel hangs under the tray and gets shorter (its list shows fewer
+     rows) on short screens instead of overflowing. */
+  .window {
+    position: absolute;
+    top: 42px;
+    right: 28px;
+    width: 400px;
+    z-index: 2;
+    transform-origin: top right;
+    will-change: transform;
+  }
+  .window :global(.demo::before) {
+    display: none;
+  }
+  .window :global(.panel) {
+    height: min(620px, calc(var(--hero-h) - 64px));
+    min-height: 470px;
+  }
+  .drag-hint {
+    position: absolute;
+    left: 16px;
+    bottom: 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--page) 75%, transparent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--line);
+    font-size: 12px;
+    color: var(--muted);
+    z-index: 1;
+  }
+
+  @media (max-width: 1100px) {
+    .grid {
+      grid-template-columns: 1fr;
+      height: auto;
+    }
+    .left {
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .left > .cross,
+    .logos > .cross {
+      display: none;
+    }
+    .right {
+      height: 690px;
+    }
+    .window {
+      right: auto;
+      left: 50%;
+      margin-left: -200px;
+    }
+  }
+  @media (max-width: 640px) {
+    .copy {
+      padding: 44px 20px 40px;
+    }
+    h1 {
+      font-size: clamp(34px, 10.4vw, 46px);
+    }
+    .line {
+      white-space: normal;
+    }
+    .logos {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .logos li:nth-child(4) {
+      border-right: 0;
+    }
+    .logos li:nth-child(-n + 4) {
+      border-bottom: 1px solid var(--line);
+    }
+    .logos code {
+      display: none;
+    }
+    .right {
+      height: 640px;
+    }
+    .mb-left span,
+    .mb-right > :global(svg),
+    .hint {
+      display: none;
+    }
+    .window {
+      left: 12px;
+      right: 12px;
+      width: auto;
+      margin: 0;
+    }
+    .drag-hint {
+      display: none;
+    }
+  }
+
+  @keyframes line-up {
+    from {
+      transform: translateY(110%);
+    }
+  }
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+  }
+  @keyframes nudge {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    50% {
+      transform: translateX(-4px);
+    }
+  }
+</style>

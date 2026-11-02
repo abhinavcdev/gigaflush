@@ -6,11 +6,11 @@ product
 
 ## Users
 
-NodeMinus is for developers who routinely accumulate large `node_modules` directories across side projects, client work, experiments, and cloned repositories. They use it as a quick tray utility while managing disk space, usually in the middle of active development rather than as a long cleanup session.
+Gigaflush is for developers who routinely accumulate large dependency folders, build output, and tool caches across side projects, client work, experiments, and cloned repositories. They use it as a quick tray utility while managing disk space, usually in the middle of active development rather than as a long cleanup session.
 
 ## Product Purpose
 
-NodeMinus discovers reclaimable Node dependency folders, makes the storage impact obvious, and lets users remove rebuildable bloat with confidence. Success means a developer can scan a folder, understand what will be purged, and reclaim space without leaving their flow.
+Gigaflush discovers recognized project-local generated folders across Node.js, Flutter/Dart, Rust, Python, Swift, Gradle, and Maven, makes the storage impact obvious, and lets users remove rebuildable bloat with confidence. Success means a developer can scan a folder, understand what will be purged, and reclaim space without leaving their flow.
 
 ## Brand Personality
 
@@ -18,7 +18,7 @@ Sharp, calm, and decisive. The product should feel like a precise developer inst
 
 ## Anti-references
 
-NodeMinus should not look like a marketing landing page, a playful gamified cleaner, a noisy antivirus dashboard, or a generic dark SaaS card grid. Avoid oversized hero sections, decorative effects that do not explain state, vague destructive actions, and UI that hides the filesystem context.
+Gigaflush should not look like a marketing landing page, a playful gamified cleaner, a noisy antivirus dashboard, or a generic dark SaaS card grid. Avoid oversized hero sections, decorative effects that do not explain state, vague destructive actions, and UI that hides the filesystem context.
 
 ## Design Principles
 

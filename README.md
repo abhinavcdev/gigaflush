@@ -1,74 +1,92 @@
 <div align="center">
-  <img src="src-tauri/icons/128x128.png" width="72" height="72" alt="NodeMinus icon" />
-  <h1>NodeMinus</h1>
-  <p>Find every <code>node_modules</code> folder on your machine. Purge the ones you pick. Get your disk back.</p>
+  <img src="brand/app-icon.svg" width="72" height="72" alt="Gigaflush icon" />
+  <h1>Gigaflush</h1>
+  <p>Find generated project files. Review what goes. Make room to build.</p>
 
-  ![License](https://img.shields.io/github/license/abhinavcdev/nodeminus)
-  ![Release](https://img.shields.io/github/actions/workflow/status/abhinavcdev/nodeminus/release.yml?label=release)
+  ![License](https://img.shields.io/github/license/abhinavcdev/gigaflush)
+  ![Release](https://img.shields.io/github/actions/workflow/status/abhinavcdev/gigaflush/release.yml?label=release)
   ![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-blue)
 </div>
 
 ---
 
-NodeMinus is a small menu-bar / system-tray utility for developers who accumulate
-`node_modules` directories across side projects, client work, and cloned repos.
-It scans a folder tree, shows you every dependency directory it finds sorted by
-reclaimable size, and lets you delete the ones you don't need right now —
-nothing is touched that isn't literally named `node_modules`.
+Gigaflush is a small menu-bar / system-tray utility for reclaiming space from
+project dependencies, build output, and tool caches. Scan a workspace, filter the
+results, and review exact paths and rebuild instructions before permanent removal.
+The interface follows your system's light or dark appearance, or a theme you pin
+from the titlebar.
 
-## Download
+### Supported cleanup
 
-Grab the latest build for your platform from
-**[GitHub Releases](https://github.com/abhinavcdev/nodeminus/releases/latest)**.
+| Project | Recognized folders | Required project marker |
+|---|---|---|
+| Node.js | `node_modules` | `package.json` |
+| Flutter / Dart | `build`, `.dart_tool` | `pubspec.yaml` |
+| Rust | `target` | `Cargo.toml` |
+| Python | `.pytest_cache`, `.mypy_cache`, `.ruff_cache` | `pyproject.toml`, `setup.py`, or `requirements.txt` |
+| Swift | `.build` | `Package.swift` |
+| Gradle | `.gradle` (project-local) | `build.gradle[.kts]` or `settings.gradle[.kts]` |
+| Maven | `target` | `pom.xml` |
 
-A standalone download page with OS auto-detection lives in [`site/`](site/) and
-can be deployed separately — see [RELEASING.md](RELEASING.md).
+Choose cleanup types before scanning. Each folder is listed separately; nothing
+is preselected. Generic `dist`/`build` folders, virtual environments, global caches,
+SDKs, source directories, and lockfiles are not cleanup targets. Recognition uses
+standard directory conventions plus a sibling project marker; it cannot determine
+whether you have manually saved valuable files inside a generated directory.
 
-| Platform | Package |
-|----------|---------|
-| macOS (Apple Silicon) | `.dmg` |
-| macOS (Intel) | `.dmg` |
-| Windows 10/11 (x64) | `.exe` installer |
-| Linux (x86_64) | `.AppImage` or `.deb` |
+Cleanup is permanent, not a move to Trash. Stop builds and dev servers first.
+Locally edited dependencies and anything manually stored in generated directories
+will be removed. Reinstallation may need network access; rebuilding takes time.
+Sizes are logical file-size estimates, not guaranteed physical disk savings.
+Symlink targets and paths through symlink ancestors are refused at deletion time.
+Inaccessible directories are skipped during scanning. Checks run again immediately
+before removal, but path-based deletion is not an atomic filesystem snapshot; do
+not move or replace project directories during cleanup.
 
-Every release ships a `SHA256SUMS.txt` alongside the binaries — verify before you run
-anything you didn't build yourself.
+## Get Gigaflush
 
-> macOS builds are not yet notarized. On first launch, right-click the app and
-> choose **Open** to bypass Gatekeeper's unidentified-developer warning.
+Gigaflush is open source. You can always build it yourself (see below), or
+buy a ready-to-run build, which is how the project is funded:
 
-## Why
+| Platform | Build | Price |
+|----------|-------|-------|
+| macOS (Apple Silicon + Intel) | Signed and notarized `.dmg` | $4.99 on [gigaflush.app](https://gigaflush.app/#pricing) |
+| Windows 10/11 (x64) | Signed `.exe` installer | $4.99 on [gigaflush.app](https://gigaflush.app/#pricing) |
+| Linux (x86_64) | `.AppImage` or `.deb` | Free on [GitHub Releases](https://github.com/abhinavcdev/gigaflush/releases/latest) |
 
-`node_modules` is the single biggest, most disposable consumer of disk space on a
-developer's machine. It regenerates perfectly from `package.json` with one command,
-yet most of us let dozens of copies pile up across old branches, forgotten
-experiments, and half-finished side projects — quietly eating tens of gigabytes.
-NodeMinus exists to make that space visible and safe to reclaim, without digging
-through Finder or writing a shell one-liner you don't fully trust.
+Paid builds are sold and delivered through [Polar](https://polar.sh), which
+handles checkout, tax, receipts, and re-downloads of new versions. Linux
+releases ship a `SHA256SUMS.txt` alongside the binaries.
 
 ## Features
 
-- **Live scanning** — projects stream into the results list the moment they're
-  found, sorted by reclaimable size, instead of waiting for the whole walk to finish.
-- **Guard-railed deletes** — the delete command refuses to touch anything that
-  isn't literally a directory named `node_modules`, enforced in the Rust backend
-  itself, not just the UI.
-- **Menu-bar native** — lives in your tray, not your Dock. Click to open, click
-  elsewhere (or press `Esc`) to dismiss.
-- **Fast, parallel scanning** — a parallel directory walker skips `.git`, system
-  folders, and nested `node_modules` duplicates so scanning a whole home directory
-  stays quick.
-- **First-run onboarding** — a short walkthrough on first launch, remembered
-  across sessions, plus a persisted last-scanned folder.
-- **Confirm before you commit** — purges (single project or bulk) always show
-  the exact paths and reclaimable size before anything is deleted, with live
-  per-item progress while it runs.
+- **Native-feeling panel** — macOS popover vibrancy, a Files | Servers segmented
+  control, spring-driven motion, system/light/dark theme switcher, keyboard focus,
+  and reduced-motion support.
+- **Reclaimable breakdown** — a segmented bar shows where the space is (Node.js,
+  Rust, Flutter, other); click a legend entry to filter the list.
+- **Idle dev servers** — the Servers tab maps every dev server on localhost and
+  suggests only the ones nothing is connected to that are orphaned or hours
+  old. Stopping re-verifies PID and start time, then sends SIGTERM.
+  macOS and Linux.
+- **Live scanning** — parallel Rust traversal streams discoveries; batched UI
+  updates preserve row identity and initially render at most 100 folders.
+- **Review first** — explicit selection, full-path confirmation, project-specific
+  rebuild guidance, and per-folder cleanup progress.
+- **Backend checks** — cleanup revalidates project markers and allowed folder
+  names and rejects symbolic-link paths and parent traversal.
+- **Responsive cleanup** — disk deletion runs on a blocking worker, with a
+  backend guard preventing overlapping scan and cleanup operations.
+- **Menu-bar workflow** — click the tray icon to open; click elsewhere or press
+  Escape to dismiss. Cmd/Ctrl+1 and 2 switch views, Cmd/Ctrl+F filters and
+  Cmd/Ctrl+R rescans.
+- **Remembered preferences** — last workspace and enabled cleanup types persist.
 
 ## Development
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) 18+
+- [Node.js](https://nodejs.org/) 20+
 - [Rust](https://www.rust-lang.org/tools/install) (stable toolchain)
 - Platform build dependencies for [Tauri v2](https://v2.tauri.app/start/prerequisites/)
 
@@ -96,17 +114,31 @@ cd src-tauri
 cargo test
 ```
 
+UI smoke tests use a simulated Tauri bridge (no real folders are deleted):
+
+```bash
+npx playwright install chromium
+npm run test:ui
+```
+
+Set `BROWSER_PATH` to use an existing Chrome/Chromium executable. The test starts
+its own local server, exercises selection, filtering, confirmation, cleanup progress,
+light/dark appearance, reduced motion, and a 2,000-result burst. Screenshots use
+synthetic project data and are saved under `.impeccable/review/`.
+
 ## Project structure
 
 ```
 ├── src/                  # Frontend (vanilla HTML/CSS/JS, Tauri webview)
 ├── src-tauri/            # Rust backend
 │   ├── src/
-│   │   ├── scanner.rs    # node_modules discovery + size calculation
-│   │   ├── commands.rs   # Tauri commands: scan, delete, folder picker
+│   │   ├── scanner.rs    # project artifact discovery + size calculation
+│   │   ├── commands.rs   # Tauri commands: scan, delete, folder picker, servers
+│   │   ├── ports.rs      # idle dev server detection and safe stop
 │   │   └── lib.rs        # Tray icon, window, menu setup
 │   └── capabilities/     # Tauri v2 permission scoping
-├── site/                 # Landing page (static; deploy anywhere, e.g. Cloudflare Workers)
+├── brand/                # Logo sources (app icon, monochrome mark, OG image)
+├── site/                 # Astro landing page (npm run site:dev / site:build)
 └── .github/workflows/    # Release pipeline (builds + publishes to GitHub Releases)
 ```
 
@@ -126,4 +158,10 @@ cleaner vibes).
 
 ## License
 
-[MIT](LICENSE)
+Gigaflush is free software, licensed under the
+[GNU General Public License v3.0 or later](LICENSE). Versions up to and
+including 0.1.1 were released under the MIT License, and those copies remain
+under MIT.
+
+The Gigaflush name and logo are not covered by the GPL. If you distribute a
+modified build, please give it a different name and icon.

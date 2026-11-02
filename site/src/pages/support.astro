@@ -1,0 +1,22 @@
+---
+import Prose from "../layouts/Prose.astro";
+import { GITHUB_URL, POLAR, SUPPORT_EMAIL } from "../config";
+---
+
+<Prose title="Support" description="Get help with Gigaflush, downloads, and purchases.">
+  <h2>Download a new version</h2>
+  <p>Bought a macOS or Windows build? Sign in to your <a href={POLAR.library}>Polar library</a> with your purchase email to download the latest version. Linux builds are on <a href={`${GITHUB_URL}/releases/latest`}>GitHub Releases</a>.</p>
+
+  <h2>Bugs and feature requests</h2>
+  <p>Please <a href={`${GITHUB_URL}/issues/new`}>open an issue on GitHub</a> with your OS version, Gigaflush version (shown at the bottom of the "How it works" sheet), and what you expected to happen.</p>
+
+  <h2>Orders, refunds, and anything private</h2>
+  <p>Email <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a> with the email you used at checkout.</p>
+
+  <h2>Common questions</h2>
+  <ul>
+    <li><strong>A folder I expected isn't listed.</strong> Gigaflush only lists folders that sit beside a project file, such as <code>node_modules</code> next to <code>package.json</code>. Also check that its type is enabled under Cleanup types.</li>
+    <li><strong>A folder couldn't be removed.</strong> Stop dev servers, watchers, and IDE indexers that may hold files open, then try again.</li>
+    <li><strong>Sizes don't match the space I got back.</strong> Sizes are logical file sizes; compression, clones, and hard links can make the real savings differ.</li>
+  </ul>
+</Prose>

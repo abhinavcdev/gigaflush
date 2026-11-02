@@ -1,0 +1,333 @@
+---
+import { render } from "astro:content";
+import Base from "../../layouts/Base.astro";
+import PostCard from "../../components/blog/PostCard.astro";
+import AppCta from "../../components/blog/AppCta.astro";
+import Figure from "../../components/blog/Figure.astro";
+import { getPosts, readingTime, formatDate, related } from "../../lib/blog";
+
+export async function getStaticPaths() {
+  const posts = await getPosts();
+  return posts.map((post) => ({ params: { slug: post.id }, props: { post, all: posts } }));
+}
+const { post, all } = Astro.props;
+const { Content, headings } = await render(post);
+const toc = headings.filter((h) => h.depth === 2);
+const url = new URL(`/blog/${post.id}`, Astro.site).href;
+const schema = [
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.data.title,
+    description: post.data.description,
+    datePublished: post.data.date.toISOString(),
+    dateModified: (post.data.updated ?? post.data.date).toISOString(),
+    keywords: post.data.keywords.join(", "),
+    url,
+    mainEntityOfPage: url,
+    image: new URL("/og.png", Astro.site).href,
+    author: { "@type": "Organization", name: "Gigaflush", url: Astro.site?.href },
+    publisher: { "@type": "Organization", name: "Gigaflush", logo: { "@type": "ImageObject", url: new URL("/apple-touch-icon.png", Astro.site).href } },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: Astro.site?.href },
+      { "@type": "ListItem", position: 2, name: "Blog", item: new URL("/blog", Astro.site).href },
+      { "@type": "ListItem", position: 3, name: post.data.title, item: url },
+    ],
+  },
+];
+---
+
+<Base title={`${post.data.title} | Gigaflush`} description={post.data.description} type="article" schema={schema}>
+  <div class="progress" data-progress aria-hidden="true"></div>
+  <main class="frame">
+    <header class="head">
+      <nav class="crumbs mono-label" data-reveal><a href="/blog">Blog</a> / {post.data.tags[0]}</nav>
+      <h1 data-reveal style="--d:1">{post.data.title}</h1>
+      <p class="lede" data-reveal style="--d:2">{post.data.description}</p>
+      <p class="meta mono-label" data-reveal style="--d:3">
+        <span>{formatDate(post.data.date)}</span>
+        {post.data.updated && <span>Updated {formatDate(post.data.updated)}</span>}
+        <span>{readingTime(post)} min read</span>
+      </p>
+    </header>
+    {
+      post.data.figure && (
+        <div class="hero-fig">
+          <Figure name={post.data.figure} />
+        </div>
+      )
+    }
+    <div class="layout">
+      <article class="prose">
+        <Content />
+        <AppCta />
+      </article>
+      <aside class="toc">
+        <p class="mono-label">On this page</p>
+        <ol>
+          {toc.map((h) => <li><a href={`#${h.slug}`} data-toc={h.slug}>{h.text}</a></li>)}
+        </ol>
+      </aside>
+    </div>
+    <section class="more">
+      <p class="mono-label">Keep reading</p>
+      <div class="more-grid">{related(post, all).map((p) => <PostCard post={p} />)}</div>
+    </section>
+  </main>
+</Base>
+
+<script>
+  import { animate } from "motion";
+  const bar = document.querySelector<HTMLElement>("[data-progress]")!;
+  const article = document.querySelector<HTMLElement>(".prose")!;
+  let target = 0;
+  let current = 0;
+  let vel = 0;
+  // A hand-rolled spring keeps the bar elastic as you scroll.
+  const step = () => {
+    const force = (target - current) * 0.12;
+    vel = (vel + force) * 0.72;
+    current += vel;
+    bar.style.transform = `scaleX(${Math.max(0, Math.min(1, current))})`;
+    requestAnimationFrame(step);
+  };
+  addEventListener(
+    "scroll",
+    () => {
+      const r = article.getBoundingClientRect();
+      target = Math.min(1, Math.max(0, -r.top / Math.max(1, r.height - innerHeight)));
+    },
+    { passive: true },
+  );
+  requestAnimationFrame(step);
+
+  const links = [...document.querySelectorAll<HTMLAnchorElement>("[data-toc]")];
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries)
+        if (e.isIntersecting) {
+          links.forEach((l) => l.classList.toggle("on", l.dataset.toc === e.target.id));
+          const on = links.find((l) => l.dataset.toc === e.target.id);
+          if (on) animate(on, { x: [6, 0] }, { type: "spring", stiffness: 400, damping: 18 });
+        }
+    },
+    { rootMargin: "-20% 0px -70% 0px" },
+  );
+  document.querySelectorAll(".prose h2[id]").forEach((h) => io.observe(h));
+</script>
+
+<style>
+  .progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    z-index: 60;
+    transform-origin: left;
+    transform: scaleX(0);
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  }
+  .head {
+    max-width: 860px;
+    padding: 64px 40px 40px;
+  }
+  .crumbs a {
+    color: var(--text);
+  }
+  h1 {
+    margin-top: 18px;
+    font-size: clamp(34px, 4.6vw, 56px);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.04;
+    text-wrap: balance;
+  }
+  .lede {
+    margin-top: 18px;
+    font-size: 19px;
+    color: var(--muted);
+    text-wrap: pretty;
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-top: 22px;
+  }
+  .hero-fig {
+    padding: 8px 40px 8px;
+    border-top: 1px solid var(--line);
+  }
+  .hero-fig :global(.fig-wrap) {
+    max-width: 860px;
+    margin: 32px auto;
+  }
+  @media (max-width: 600px) {
+    .hero-fig {
+      padding-inline: 16px;
+    }
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 720px) 220px;
+    justify-content: space-between;
+    gap: 48px;
+    padding: 32px 40px 0;
+    border-top: 1px solid var(--line);
+  }
+  .toc {
+    position: sticky;
+    top: 100px;
+    align-self: start;
+    font-size: 13px;
+  }
+  .toc ol {
+    list-style: none;
+    margin-top: 12px;
+    display: grid;
+    gap: 8px;
+    border-left: 1px solid var(--line);
+  }
+  .toc a {
+    display: block;
+    padding-left: 12px;
+    margin-left: -1px;
+    border-left: 1px solid transparent;
+    color: var(--muted);
+    transition: color 200ms;
+  }
+  .toc a:hover,
+  .toc a.on {
+    color: var(--text);
+    border-left-color: var(--text);
+  }
+  .prose {
+    font-size: 16.5px;
+    line-height: 1.75;
+    padding-bottom: 40px;
+    min-width: 0;
+  }
+  .prose :global(h2) {
+    margin: 56px 0 14px;
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.022em;
+    line-height: 1.2;
+    scroll-margin-top: 96px;
+  }
+  .prose :global(h3) {
+    margin: 32px 0 8px;
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  .prose :global(p),
+  .prose :global(li) {
+    color: color-mix(in srgb, var(--text) 82%, var(--page));
+  }
+  .prose :global(p) {
+    margin: 16px 0;
+  }
+  .prose :global(ul),
+  .prose :global(ol) {
+    margin: 16px 0;
+    padding-left: 22px;
+  }
+  .prose :global(li + li) {
+    margin-top: 6px;
+  }
+  .prose :global(a) {
+    color: var(--text);
+    text-decoration: underline;
+    text-decoration-color: var(--line-strong);
+    text-underline-offset: 3px;
+  }
+  .prose :global(a:hover) {
+    text-decoration-color: var(--accent);
+  }
+  .prose :global(strong) {
+    color: var(--text);
+    font-weight: 600;
+  }
+  .prose :global(:not(pre) > code) {
+    font-size: 0.86em;
+    padding: 2px 6px;
+    border-radius: 5px;
+    background: var(--control);
+  }
+  .prose :global(pre) {
+    margin: 20px 0;
+    padding: 18px 20px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    font-size: 13px;
+    line-height: 1.65;
+    overflow-x: auto;
+  }
+  .prose :global(table) {
+    display: block;
+    width: 100%;
+    margin: 24px 0;
+    border-collapse: collapse;
+    font-size: 14px;
+    overflow-x: auto;
+  }
+  .prose :global(th),
+  .prose :global(td) {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    vertical-align: top;
+  }
+  .prose :global(th) {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .more {
+    padding: 48px 40px 24px;
+    border-top: 1px solid var(--line);
+  }
+  .more-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 16px;
+  }
+  @media (max-width: 1000px) {
+    .hero-fig {
+    padding: 8px 40px 8px;
+    border-top: 1px solid var(--line);
+  }
+  .hero-fig :global(.fig-wrap) {
+    max-width: 860px;
+    margin: 32px auto;
+  }
+  @media (max-width: 600px) {
+    .hero-fig {
+      padding-inline: 16px;
+    }
+  }
+  .layout {
+      grid-template-columns: 1fr;
+    }
+    .toc {
+      display: none;
+    }
+    .more-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 600px) {
+    .head,
+    .layout,
+    .more {
+      padding-inline: 16px;
+    }
+  }
+</style>

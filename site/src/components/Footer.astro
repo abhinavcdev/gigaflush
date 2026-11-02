@@ -1,0 +1,158 @@
+---
+import Mark from "./Mark.astro";
+import Icon from "./Icon.astro";
+import { GITHUB_URL, SUPPORT_EMAIL } from "../config";
+const cols = [
+  {
+    title: "Product",
+    links: [
+      ["Gigaflush for Mac", "/mac"],
+      ["Gigaflush for Windows", "/windows"],
+      ["Gigaflush for Linux", "/linux"],
+      ["Pricing", "/#pricing"],
+      ["Changelog", `${GITHUB_URL}/blob/main/CHANGELOG.md`],
+    ],
+  },
+  {
+    title: "Guides",
+    links: [
+      ["Delete node_modules", "/clean/node-modules"],
+      ["Clean Rust target", "/clean/rust-target"],
+      ["flutter clean, everywhere", "/clean/flutter-build"],
+      ["Python caches", "/clean/python-cache"],
+      ["All guides", "/guides"],
+    ],
+  },
+  {
+    title: "Resources",
+    links: [
+      ["Blog", "/blog"],
+      ["npkill vs kondo vs Gigaflush", "/blog/npkill-vs-kondo-vs-gigaflush"],
+      ["Mac cleanup checklist", "/blog/free-up-disk-space-mac-developers"],
+      ["RSS", "/rss.xml"],
+    ],
+  },
+  {
+    title: "Open source",
+    links: [
+      ["Source on GitHub", GITHUB_URL],
+      ["GPL-3.0 licence", `${GITHUB_URL}/blob/main/LICENSE`],
+      ["Report an issue", `${GITHUB_URL}/issues`],
+      ["Support", "/support"],
+    ],
+  },
+];
+---
+
+<footer class="frame footer">
+  <div class="top">
+    <div class="brand">
+      <a href="/" class="logo"><Mark size={28} /><span>Gigaflush</span></a>
+      <p>Your disk isn't full. It's node_modules.<br />Open-source cleanup for every project you've ever started.</p>
+      <a href={GITHUB_URL} class="gh"><Icon name="ph:github-logo" size={18} /> Star on GitHub</a>
+    </div>
+    {
+      cols.map((c) => (
+        <nav aria-label={c.title}>
+          <b>{c.title}</b>
+          {c.links.map(([label, href]) => <a href={href}>{label}</a>)}
+        </nav>
+      ))
+    }
+  </div>
+  <div class="base">
+    <span>Copyright © {new Date().getFullYear()} Gigaflush. Built with Rust and Tauri. Figures drawn with <a href="https://github.com/wheresryan22/anatomy">Anatomy</a> (MIT).</span>
+    <nav aria-label="Legal">
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
+      <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
+    </nav>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    font-size: 12px;
+    line-height: 1.33;
+    letter-spacing: -0.01em;
+    color: var(--muted);
+  }
+  .top {
+    display: grid;
+    grid-template-columns: 1.5fr repeat(4, 1fr);
+    gap: 40px;
+    padding: 72px 56px 56px;
+  }
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text);
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.022em;
+  }
+  .brand p {
+    margin-top: 14px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .gh {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 18px;
+    font-size: 14px;
+    color: var(--accent);
+  }
+  .gh:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  nav {
+    display: grid;
+    align-content: start;
+    gap: 10px;
+  }
+  nav b {
+    margin-bottom: 4px;
+    color: var(--text);
+    font-weight: 600;
+  }
+  nav a {
+    width: fit-content;
+    transition: color 160ms;
+  }
+  nav a:hover {
+    color: var(--text);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .base {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 12px 24px;
+    margin: 0 56px;
+    padding: 18px 0 28px;
+    border-top: 1px solid var(--line);
+    color: var(--faint);
+  }
+  .base nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  @media (max-width: 960px) {
+    .top {
+      grid-template-columns: 1fr 1fr;
+      padding: 56px 20px 40px;
+    }
+    .brand {
+      grid-column: 1 / -1;
+    }
+    .base {
+      margin: 0 20px;
+    }
+  }
+</style>

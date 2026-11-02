@@ -1,16 +1,21 @@
-# Release pipeline: build NodeMinus for every platform and publish a GitHub
-# Release. A second job then attaches stable, version-free copies of each
-# artifact (plus a checksum file) to that same release, so the landing page
-# can link to permanent URLs like:
+# Release pipeline. Push a tag like v0.2.0 and this:
 #
-#   https://github.com/<owner>/<repo>/releases/latest/download/NodeMinus-macos-arm64.dmg
+#   1. Builds macOS (universal), Windows x64, and Linux x86_64.
+#   2. Signs + notarizes macOS and signs Windows when the secrets below exist
+#      (unsigned/ad-hoc otherwise, so the pipeline still runs before you
+#      have certificates).
+#   3. Publishes a public GitHub Release with the free Linux builds and
+#      stable-named copies for the landing page:
+#        https://github.com/<owner>/<repo>/releases/latest/download/Gigaflush-linux-x86_64.AppImage
+#   4. Keeps the paid macOS/Windows installers as private workflow artifacts
+#      ("paid-installers"), which you upload to the Polar products.
 #
-# GitHub resolves "latest/download/<name>" against whichever release is
-# currently marked latest, so these links never need to change between
-# versions. No external storage, domain, or secrets required beyond the
-# token GitHub Actions already provides.
-#
-# Trigger: push a tag like v0.1.0
+# macOS secrets:   APPLE_CERTIFICATE (base64 .p12), APPLE_CERTIFICATE_PASSWORD,
+#                  APPLE_SIGNING_IDENTITY, APPLE_ID, APPLE_PASSWORD (app-specific),
+#                  APPLE_TEAM_ID
+# Windows secrets: AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID,
+#                  AZURE_SIGNING_ENDPOINT, AZURE_SIGNING_ACCOUNT,
+#                  AZURE_SIGNING_PROFILE   (Azure Artifact Signing)
 name: Release
 
 on:
@@ -20,23 +25,21 @@ on:
 
 jobs:
   build:
-    permissions:
-      contents: write
     strategy:
       fail-fast: false
       matrix:
         include:
           - platform: macos-latest
-            target: aarch64-apple-darwin
-            args: --target aarch64-apple-darwin
-          - platform: macos-latest
-            target: x86_64-apple-darwin
-            args: --target x86_64-apple-darwin
-          - platform: ubuntu-22.04
-            target: ""
-            args: ""
+            name: macos
+            rust-targets: aarch64-apple-darwin,x86_64-apple-darwin
+            args: --target universal-apple-darwin
           - platform: windows-latest
-            target: ""
+            name: windows
+            rust-targets: ""
+            args: ""
+          - platform: ubuntu-22.04
+            name: linux
+            rust-targets: ""
             args: ""
     runs-on: ${{ matrix.platform }}
     steps:
@@ -49,14 +52,14 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: ${{ matrix.rust-targets }}
 
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
 
       - name: Install Linux dependencies
-        if: startsWith(matrix.platform, 'ubuntu')
+        if: matrix.name == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -70,22 +73,65 @@ jobs:
             build-essential \
             file
 
+      # Only export signing variables that are actually set: Tauri treats an
+      # empty APPLE_CERTIFICATE as "sign with this" and fails.
+      - name: Configure macOS signing
+        if: matrix.name == 'macos'
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          for v in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+            if [ -n "${!v}" ]; then echo "$v=${!v}" >> "$GITHUB_ENV"; fi
+          done
+          [ -n "$APPLE_CERTIFICATE" ] || echo "::warning::No Apple certificate: macOS build is ad-hoc signed, not notarized. Do not sell it."
+
+      - name: Configure Windows signing
+        if: matrix.name == 'windows'
+        shell: bash
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ENDPOINT: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+          ACCOUNT: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          PROFILE: ${{ secrets.AZURE_SIGNING_PROFILE }}
+        run: |
+          if [ -z "$AZURE_CLIENT_ID" ]; then
+            echo "::warning::No Azure signing secrets: Windows installer is unsigned. Do not sell it."
+            exit 0
+          fi
+          cargo install artifact-signing-cli --locked
+          {
+            echo "AZURE_CLIENT_ID=$AZURE_CLIENT_ID"
+            echo "AZURE_CLIENT_SECRET=$AZURE_CLIENT_SECRET"
+            echo "AZURE_TENANT_ID=$AZURE_TENANT_ID"
+          } >> "$GITHUB_ENV"
+          printf '{"bundle":{"windows":{"signCommand":"artifact-signing-cli -e %s -a %s -c %s -d Gigaflush %%1"}}}' \
+            "$ENDPOINT" "$ACCOUNT" "$PROFILE" > src-tauri/tauri.signing.conf.json
+          echo "SIGNING_ARGS=--config src-tauri/tauri.signing.conf.json" >> "$GITHUB_ENV"
+
       - run: npm ci
 
-      - name: Build and attach to GitHub Release
+      - name: Build
+        id: tauri
         uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "NodeMinus ${{ github.ref_name }}"
-          releaseBody: "See the assets below for installers, or use the download page for a build picked for your platform automatically."
-          releaseDraft: false
-          prerelease: false
-          args: ${{ matrix.args }}
+          args: ${{ matrix.args }} ${{ env.SIGNING_ARGS }}
 
-  attach-stable-downloads:
-    name: Attach stable-named downloads
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bundle-${{ matrix.name }}
+          path: ${{ join(fromJSON(steps.tauri.outputs.artifactPaths), '\n') }}
+          if-no-files-found: error
+
+  publish:
+    name: Publish release
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -93,43 +139,44 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - name: Download this release's assets
-        run: |
-          mkdir -p assets
-          gh release download "${GITHUB_REF_NAME}" \
-            --repo "${GITHUB_REPOSITORY}" \
-            --dir assets
-          ls -la assets
+      - uses: actions/download-artifact@v4
+        with:
+          path: assets
 
-      - name: Build stable-named copies + checksums
+      - name: Name artifacts
         run: |
           set -euo pipefail
-          mkdir -p out
-
-          # Glob-based so minor Tauri artifact-naming changes don't break
-          # the pipeline — each entry maps "whatever tauri-action produced"
-          # to the fixed name the landing page links to.
-          stable() { # stable <glob> <stable-name>
+          mkdir -p public paid
+          # Glob-based so small Tauri naming changes don't break the
+          # pipeline; each entry maps whatever was built to a fixed name.
+          stable() { # stable <dir> <glob> <name>
             local match
-            match=$(find assets -maxdepth 1 -name "$1" | head -1)
+            match=$(find "assets/bundle-$1" -name "$2" | head -1)
             if [ -n "$match" ]; then
-              cp "$match" "out/$2"
-              echo "$2  <-  $(basename "$match")"
+              cp "$match" "$4/$3"
+              echo "$3  <-  $match"
             else
-              echo "::warning::no artifact matched $1 (wanted $2)"
+              echo "::warning::no artifact matched $2 (wanted $3)"
             fi
           }
-          stable "*aarch64*.dmg"  "NodeMinus-macos-arm64.dmg"
-          stable "*x64*.dmg"      "NodeMinus-macos-x64.dmg"
-          stable "*setup.exe"     "NodeMinus-windows-x64-setup.exe"
-          stable "*.AppImage"     "NodeMinus-linux-x86_64.AppImage"
-          stable "*amd64*.deb"    "NodeMinus-linux-amd64.deb"
+          stable linux   "*.AppImage" Gigaflush-linux-x86_64.AppImage public
+          stable linux   "*.deb"      Gigaflush-linux-amd64.deb       public
+          stable macos   "*.dmg"      Gigaflush-macos-universal.dmg   paid
+          stable windows "*setup.exe" Gigaflush-windows-x64-setup.exe paid
+          (cd public && sha256sum Gigaflush-* > SHA256SUMS.txt)
+          (cd paid && sha256sum Gigaflush-* > SHA256SUMS.txt)
 
-          (cd out && shasum -a 256 NodeMinus-* > SHA256SUMS.txt)
-
-      - name: Attach stable copies to the release
+      - name: Create GitHub Release (Linux only)
         run: |
-          gh release upload "${GITHUB_REF_NAME}" out/* \
+          gh release create "${GITHUB_REF_NAME}" public/* \
             --repo "${GITHUB_REPOSITORY}" \
-            --clobber
-          echo "Attached $(ls out | wc -l) files to ${GITHUB_REF_NAME}"
+            --title "Gigaflush ${GITHUB_REF_NAME}" \
+            --notes "Linux builds are attached below and free. Signed macOS and Windows builds are available at https://gigaflush.app/#pricing — existing buyers can download this version from their Polar library. Or build from source; see the README." \
+            || gh release upload "${GITHUB_REF_NAME}" public/* --repo "${GITHUB_REPOSITORY}" --clobber
+
+      - name: Keep paid installers private
+        uses: actions/upload-artifact@v4
+        with:
+          name: paid-installers-${{ github.ref_name }}
+          path: paid/*
+          retention-days: 90

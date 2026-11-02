@@ -1,0 +1,169 @@
+---
+import Base from "../layouts/Base.astro";
+import Mark from "../components/Mark.astro";
+import { platforms, guides } from "../data/cleanup";
+import { POLAR, LINUX, PRICE, GITHUB_URL } from "../config";
+
+export function getStaticPaths() {
+  return platforms.map((p) => ({ params: { platform: p.slug }, props: { p } }));
+}
+const { p } = Astro.props;
+const buy = p.slug === "mac" ? POLAR.mac : p.slug === "windows" ? POLAR.windows : LINUX.appimage;
+const schema = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: `Gigaflush for ${p.name}`,
+  operatingSystem: p.name,
+  applicationCategory: "DeveloperApplication",
+  description: p.description,
+  url: new URL(`/${p.slug}`, Astro.site).href,
+  offers: { "@type": "Offer", price: p.price === "Free" ? "0" : PRICE.replace("$", ""), priceCurrency: "USD" },
+  license: "https://www.gnu.org/licenses/gpl-3.0.html",
+};
+---
+
+<Base title={p.title} description={p.description} schema={schema}>
+  <main class="frame">
+    <section class="hero">
+      <div class="copy">
+        <p class="mono-label" data-reveal>Gigaflush for {p.name}</p>
+        <h1 data-reveal style="--d:1">{p.h1}</h1>
+        <p class="lede" data-reveal style="--d:2">{p.blurb}</p>
+        <div class="ctas" data-reveal style="--d:3">
+          <a href={buy} class="key key-primary" data-press>{p.price === "Free" ? "Download AppImage" : `Buy for ${p.name} · ${p.price}`}</a>
+          {p.slug === "linux" ? <a href={LINUX.deb} class="key key-ghost" data-press>.deb package</a> : <a href={GITHUB_URL} class="key key-ghost" data-press>Build from source</a>}
+        </div>
+      </div>
+      <div class="badge" data-reveal style="--d:2">
+        <Mark size={120} />
+        <span class="mono-label">{p.name}</span>
+      </div>
+    </section>
+    <section class="points">
+      {p.points.map((pt, i) => (
+        <div class="pt" data-reveal style={`--d:${i}`}>
+          <span class="mono-label">0{i + 1}</span>
+          <p>{pt}</p>
+        </div>
+      ))}
+    </section>
+    <section class="cleans">
+      <p class="mono-label">What it cleans on {p.name}</p>
+      <div class="grid">
+        {guides.map((g) => (
+          <a href={`/clean/${g.slug}`} class="card" data-press>
+            <b>{g.ecosystem}</b>
+            <code>{g.folders.join(" · ")}</code>
+          </a>
+        ))}
+      </div>
+      <p class="more">Read next: <a href={`/blog/${p.post}`}>our {p.name} guide</a> · <a href="/guides">all cleanup guides</a></p>
+    </section>
+  </main>
+</Base>
+
+<style>
+  .hero {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    border-bottom: 1px solid var(--line);
+  }
+  .copy {
+    padding: 80px 40px;
+    border-right: 1px solid var(--line);
+  }
+  h1 {
+    margin-top: 18px;
+    font-size: clamp(38px, 5vw, 64px);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.02;
+    text-wrap: balance;
+  }
+  .lede {
+    margin-top: 20px;
+    max-width: 32em;
+    font-size: 18px;
+    color: var(--muted);
+  }
+  .ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 32px;
+  }
+  .badge {
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 18px;
+    background:
+      radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 55%),
+      var(--surface);
+  }
+  .points {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-bottom: 1px solid var(--line);
+  }
+  .pt {
+    padding: 28px;
+    border-right: 1px solid var(--line);
+  }
+  .pt:last-child {
+    border-right: 0;
+  }
+  .pt p {
+    margin-top: 10px;
+    font-size: 15px;
+  }
+  .cleans {
+    padding: 40px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .grid .card {
+    display: grid;
+    gap: 4px;
+    padding: 16px;
+  }
+  .grid code {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .more {
+    margin-top: 24px;
+    color: var(--muted);
+  }
+  .more a {
+    color: var(--text);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  @media (max-width: 900px) {
+    .hero {
+      grid-template-columns: 1fr;
+    }
+    .copy {
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+      padding: 56px 20px;
+    }
+    .badge {
+      padding: 48px;
+    }
+    .points {
+      grid-template-columns: 1fr 1fr;
+    }
+    .pt:nth-child(2) {
+      border-right: 0;
+    }
+    .cleans {
+      padding: 32px 20px;
+    }
+  }
+</style>

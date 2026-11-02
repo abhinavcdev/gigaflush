@@ -1,4 +1,5 @@
 mod commands;
+mod ports;
 mod scanner;
 
 use tauri::{
@@ -13,6 +14,7 @@ fn show_panel(app: &AppHandle) {
         let _ = window.move_window(Position::TrayCenter);
         let _ = window.show();
         let _ = window.set_focus();
+        let _ = window.emit("panel-shown", ());
     }
 }
 
@@ -20,12 +22,15 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_positioner::init())
+        .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             commands::start_scan,
             commands::delete_all,
             commands::get_default_path,
             commands::path_exists,
             commands::pick_folder,
+            commands::find_idle_servers,
+            commands::stop_idle_servers,
         ])
         .setup(|app| {
             // Pure tray utility: no Dock icon, no app switcher entry.
@@ -33,16 +38,27 @@ pub fn run() {
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
             // ── Panel window (hidden by default) ───────────────────────
-            let _panel =
+            let panel =
                 WebviewWindowBuilder::new(app, "panel", WebviewUrl::App("index.html".into()))
-                    .title("NodeMinus")
-                    .inner_size(420.0, 620.0)
+                    .title("Gigaflush")
+                    .inner_size(460.0, 700.0)
+                    .min_inner_size(380.0, 560.0)
                     .decorations(false)
                     .transparent(true)
                     .always_on_top(true)
                     .visible(false)
-                    .skip_taskbar(true)
-                    .build()?;
+                    .skip_taskbar(true);
+            // Native popover material behind the translucent web UI, like a
+            // real menu bar extra. Other platforms keep the opaque surface.
+            #[cfg(target_os = "macos")]
+            let panel = panel.effects(
+                tauri::window::EffectsBuilder::new()
+                    .effect(tauri::window::Effect::Popover)
+                    .state(tauri::window::EffectState::FollowsWindowActiveState)
+                    .radius(16.0)
+                    .build(),
+            );
+            let _panel = panel.build()?;
 
             // ── Right-click context menu ───────────────────────────────
             let quick_scan =
@@ -50,7 +66,7 @@ pub fn run() {
             let preferences =
                 MenuItem::with_id(app, "preferences", "Preferences...", false, None::<&str>)?;
             let separator = PredefinedMenuItem::separator(app)?;
-            let quit = MenuItem::with_id(app, "quit", "Quit NodeMinus", true, None::<&str>)?;
+            let quit = MenuItem::with_id(app, "quit", "Quit Gigaflush", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&quick_scan, &preferences, &separator, &quit])?;
 
             // ── System tray icon ───────────────────────────────────────
@@ -106,5 +122,5 @@ pub fn run() {
             }
         })
         .run(tauri::generate_context!())
-        .expect("error while running NodeMinus");
+        .expect("error while running Gigaflush");
 }

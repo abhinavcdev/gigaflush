@@ -1,0 +1,59 @@
+---
+title: "npkill vs kondo vs Gigaflush: which project cleaner should you use?"
+description: "An honest comparison of three tools for deleting node_modules and build folders: interfaces, supported ecosystems, safety checks and price, and when each is the right pick."
+date: 2026-11-01
+tags: ["comparison", "node_modules", "tools"]
+keywords: ["npkill alternative", "kondo alternative", "npkill vs kondo", "best node_modules cleaner", "node_modules cleaner gui", "project cleaner mac", "clean build folders tool", "npkill gui"]
+accent: "#f5c45e"
+figure: marker-gate
+---
+
+import Callout from "../../components/blog/Callout.astro";
+
+Three open-source tools come up whenever someone asks how to get rid of old `node_modules` and build folders: **npkill**, **kondo** and **Gigaflush** (ours). They overlap, but they're built for different people. Here's a fair comparison, with links so you can check the details yourself.
+
+<Callout type="note">
+  We make Gigaflush, so read this with that in mind. Facts about npkill and kondo come from their READMEs as of November 2026. Both are good tools and both are free.
+</Callout>
+
+## At a glance
+
+| | npkill | kondo | Gigaflush |
+|---|---|---|---|
+| **Interface** | Interactive terminal UI | CLI, plus a separate GUI (`kondo-ui`) | Menu-bar / system-tray app |
+| **Written in** | TypeScript (runs on Node.js) | Rust | Rust backend, web UI (Tauri) |
+| **Install** | `npx npkill` | Homebrew, winget, MacPorts, pacman, cargo | Download (signed builds paid, Linux free), or build from source |
+| **Default target** | `node_modules` | 20+ project types | `node_modules` plus Rust, Flutter/Dart, Python tool caches, Swift, Gradle, Maven |
+| **Other targets** | Yes, via `--targets` and profiles | Built in | Built in; toggle types on and off |
+| **Detects the project** | Matches folder names | Detects project types | Requires a sibling marker file (e.g. `package.json`, `Cargo.toml`) |
+| **Age filter** | Shows last-modified, sorts by age | `--older` (e.g. `-o3M`) | Not yet |
+| **Licence / price** | MIT, free | MIT, free | GPL-3.0; free source, paid signed builds for macOS and Windows |
+
+## npkill
+
+[npkill](https://github.com/voidcosmos/npkill) is the classic. Run `npx npkill` in a folder and you get a live, scrollable list of `node_modules` directories with sizes, then delete with a keystroke. Profiles and `--targets` let you add other folder names, and it marks some folders as sensitive.
+
+**Pick npkill if** you live in the terminal, mostly clean JavaScript projects, and want zero install.
+
+## kondo
+
+[kondo](https://github.com/tbillington/kondo) covers the most ground: Cargo, Node, Gradle, Maven, Unity, Unreal, .NET, Zig, Godot, Haskell, Elixir and more. It's fast, available from most package managers, and has an `--older` filter so you can clean only projects you haven't touched in months. Its README is refreshingly blunt that it's "essentially `rm -rf` with a prompt".
+
+**Pick kondo if** you work across many ecosystems, especially game engines or .NET, and are happy on the command line.
+
+## Gigaflush
+
+[Gigaflush](/) is for people who'd rather click a tray icon than remember flags, and who want a careful review step before anything permanent happens:
+
+- **Marker-based matching.** A folder is a candidate only if it matches its toolchain's convention **and** the project file is right beside it. A random `build/` or `target/` isn't touched.
+- **Nothing preselected.** You tick folders yourself, then confirm in a sheet that lists every full path and how to rebuild it.
+- **Checked twice.** The Rust backend re-validates each folder right before deleting it and refuses symlinks and parent-directory tricks.
+- **Native and quiet.** Menu bar on macOS, system tray on Windows and Linux. No telemetry.
+
+It supports fewer ecosystems than kondo today. If you need Unity or .NET cleanup, kondo is the better fit right now.
+
+**Pick Gigaflush if** you want a GUI that lives in your menu bar, covers the common web, mobile and systems stacks, and makes you look before you delete.
+
+## The honest answer
+
+If you're comfortable in a terminal, try `npx npkill` or `kondo` first: they're free and excellent. If you want the same job done from your menu bar with a review step you can trust, that's what [Gigaflush](/#pricing) is for. Either way, the space you get back is the same.

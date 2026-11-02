@@ -1,0 +1,85 @@
+---
+title: "Free up disk space on a Mac: the developer's checklist"
+description: "Where developer disk space goes on macOS (Xcode DerivedData, simulators, Docker, Homebrew, package caches and project build folders) and the safe command to reclaim each one."
+date: 2026-11-01
+tags: ["macos", "disk space", "checklist"]
+keywords: ["free up disk space mac developer", "mac storage full xcode", "delete derived data", "xcode simulator disk space", "docker disk space mac", "brew cleanup", "npm cache clean", "system data mac huge developer", "clean mac for developers"]
+accent: "#9ccbff"
+figure: mac-tanks
+---
+
+import CommandTabs from "../../components/react/CommandTabs.tsx";
+import Callout from "../../components/blog/Callout.astro";
+
+"Your disk is almost full." On a developer's Mac, the culprit is rarely photos. It's a dozen caches and build folders that each made sense at the time. This checklist goes from biggest-and-safest to most situational. Measure first, then delete.
+
+<Callout type="note" title="Measure before you delete">
+  `du -sh <path>` shows how big something is. System Settings → General → Storage gives the overview, but developer files usually hide under "System Data" or "Developer".
+</Callout>
+
+## 1. Project build folders
+
+Every project you've ever cloned keeps its dependencies and build output: `node_modules`, Rust `target`, Flutter `build` and `.dart_tool`, Swift `.build`, Python tool caches, Gradle and Maven output. Across a few years of side projects, this is often the single largest category.
+
+- **Command line:** [delete all node_modules folders](/blog/delete-all-node-modules), plus `cargo clean` and `flutter clean` per project.
+- **One pass:** [Gigaflush](/) scans a folder for all of these at once, shows sizes, and removes the ones you choose. It lives in the menu bar for exactly this moment.
+
+## 2. Xcode
+
+Xcode is the usual heavyweight if you build for Apple platforms.
+
+<CommandTabs
+  client:visible
+  id="xcode"
+  tabs={[
+    { label: "DerivedData", code: "du -sh ~/Library/Developer/Xcode/DerivedData\nrm -rf ~/Library/Developer/Xcode/DerivedData/*", note: "Build intermediates and indexes. Quit Xcode first. Projects rebuild and re-index on next open." },
+    { label: "Simulators", code: "xcrun simctl delete unavailable", note: "Removes simulators for runtimes you no longer have installed." },
+    { label: "Device support", code: "du -sh ~/Library/Developer/Xcode/iOS\\ DeviceSupport", note: "Symbol files for each iOS version you've connected a device on. Old versions can be deleted in Finder." },
+    { label: "Archives", code: "du -sh ~/Library/Developer/Xcode/Archives", note: "Builds you archived for distribution. Keep the ones you might need to symbolicate crash reports." },
+  ]}
+/>
+
+Simulator runtimes themselves can be removed in Xcode → Settings → Components (or Platforms, depending on your Xcode version).
+
+## 3. Docker
+
+Docker Desktop keeps images, containers, volumes and build cache inside one virtual disk that rarely shrinks on its own.
+
+<CommandTabs
+  client:visible
+  id="docker"
+  tabs={[
+    { label: "See usage", code: "docker system df" },
+    { label: "Safe prune", code: "docker system prune", note: "Removes stopped containers, unused networks, dangling images and build cache." },
+    { label: "Aggressive", code: "docker system prune -a --volumes", note: "Also removes all unused images and volumes. Volumes can hold database data, so read the prompt." },
+  ]}
+/>
+
+## 4. Package manager caches
+
+These are global caches, separate from your projects' `node_modules`. Clearing them is safe but means re-downloading later.
+
+<CommandTabs
+  client:visible
+  id="caches"
+  tabs={[
+    { label: "Homebrew", code: "brew cleanup --prune=all" },
+    { label: "npm", code: "npm cache verify      # garbage-collects\nnpm cache clean --force  # wipes it" },
+    { label: "pnpm", code: "pnpm store prune" },
+    { label: "Yarn", code: "yarn cache clean" },
+    { label: "pip", code: "pip cache purge" },
+    { label: "CocoaPods", code: "pod cache clean --all" },
+    { label: "Gradle", code: "du -sh ~/.gradle/caches\n# safe to delete when no Gradle daemon is running:\n# rm -rf ~/.gradle/caches" },
+  ]}
+/>
+
+## 5. Everything else worth a look
+
+- **Old Node versions** in your version manager (`~/.nvm/versions`, `~/.volta`, `~/.fnm`), and old Rust toolchains (`rustup toolchain list`).
+- **Android SDK images** in `~/Library/Android/sdk/system-images` if you've tried many emulator versions.
+- **iOS device backups** under `~/Library/Application Support/MobileSync/Backup`, which are huge. Manage them from Finder.
+- **Downloads.** Yes, really. Old `.dmg` installers add up.
+
+## A routine that keeps it away
+
+Once a month: clean project build folders for anything you haven't touched, run `xcrun simctl delete unavailable`, `brew cleanup` and `docker system prune`. That's ten minutes, and it usually keeps "System Data" from creeping back.

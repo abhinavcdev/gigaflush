@@ -1,0 +1,123 @@
+---
+import { GITHUB_URL } from "../config";
+const faqs = [
+  { q: "Why pay if it's open source?", a: "You're paying for convenience and to keep the project going: a signed, notarized macOS app and a signed Windows installer, ready to run. You can always build it yourself from the source for free." },
+  { q: "What does the Servers tab stop?", a: "Only your own Node, Bun, Deno, Python, Ruby and PHP dev servers that have nothing connected to their port, have used almost no CPU, and were orphaned by a closed terminal or agent or have run for 6+ hours. Databases, Docker, editors, agents and language servers are never listed. Each one is re-checked, then asked to exit like Ctrl+C. Available on macOS and Linux; Windows is next." },
+  { q: "Does it move files to the Trash?", a: "No. Cleanup is permanent, which is what actually frees the space. That's why every removal goes through a review sheet listing exact paths and rebuild steps first." },
+  { q: "What will it never touch?", a: "Source code, lockfiles, virtual environments, global caches, SDKs, and generic dist/ or build/ folders without a matching project file. Inaccessible directories are skipped." },
+  { q: "How do updates work?", a: "Gigaflush checks GitHub for a newer version at most twice a day and shows a small banner. Paid builds link to your Polar library, where new versions appear for download. Linux builds link to GitHub Releases." },
+  { q: "Does Gigaflush collect any data?", a: "No telemetry, no analytics, no account. The update check is a plain request to GitHub's public API. Scanning and cleanup happen entirely on your machine." },
+  { q: "How accurate are the sizes?", a: "They're logical file-size estimates. Actual disk savings can differ with filesystem compression, clones, or hard links." },
+  { q: "Something isn't working.", a: "Open an issue on GitHub or email support. If it doesn't work on your machine, see the refund terms." },
+];
+---
+
+<section class="section faq-wrap">
+  <div class="section-head" data-reveal>
+    <h2>Good to know.</h2>
+    <p>Anything else? <a href={`${GITHUB_URL}/issues`}>Ask on GitHub</a> or visit <a href="/support">support</a>.</p>
+  </div>
+  <div class="faq">
+    {
+      faqs.map((f, i) => (
+        <details name="faq" data-reveal style={`--d:${i % 4}`}>
+          <summary>
+            {f.q}
+            <span class="plus" aria-hidden="true" />
+          </summary>
+          <p>{f.a}</p>
+        </details>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  .faq-wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: 56px;
+  }
+  .section-head a {
+    color: var(--text);
+    text-decoration: underline;
+    text-decoration-color: var(--line-strong);
+    text-underline-offset: 3px;
+  }
+  .faq {
+    border-top: 1px solid var(--line);
+  }
+  details {
+    border-bottom: 1px solid var(--line);
+  }
+  details::details-content {
+    block-size: 0;
+    overflow: hidden;
+    transition:
+      block-size 500ms var(--ease),
+      content-visibility 500ms allow-discrete;
+  }
+  details[open]::details-content {
+    block-size: auto;
+  }
+  summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 22px 0;
+    cursor: pointer;
+    list-style: none;
+    font-weight: 500;
+    font-size: 17px;
+    letter-spacing: -0.01em;
+    transition: color 200ms;
+  }
+  summary:hover {
+    color: var(--accent);
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  .plus {
+    position: relative;
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--control);
+    transition:
+      transform 500ms var(--ease),
+      background-color 200ms;
+  }
+  .plus::before,
+  .plus::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 11px;
+    height: 1.6px;
+    border-radius: 2px;
+    background: var(--text);
+    translate: -50% -50%;
+  }
+  .plus::after {
+    rotate: 90deg;
+  }
+  details[open] .plus {
+    transform: rotate(135deg);
+    background: var(--selected);
+  }
+  details p {
+    color: var(--muted);
+    padding-bottom: 22px;
+    max-width: 40em;
+  }
+  @media (max-width: 860px) {
+    .faq-wrap {
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+  }
+</style>
