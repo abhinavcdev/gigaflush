@@ -1,0 +1,465 @@
+/* Gigaflush site design system.
+   Typography and color follow Apple's conventions: SF Pro on Apple devices
+   (via the system font), Inter with optical sizing elsewhere, Apple
+   neutrals and system blue. Layout is a single centered frame with
+   full-bleed hairlines that cross its edges, and hatched rails filling the
+   space beside it. Theme: system by default, pinnable via html[data-theme]. */
+
+:root {
+  color-scheme: light dark;
+  --page: #faf9f6;
+  --surface: #f0efeb;
+  --content: #ffffff;
+  --control: #e8e7e2;
+  --hover: #deddd7;
+  --text: #242623;
+  --muted: #62655e;
+  --faint: #74776f;
+  --line: #dedfd8;
+  --line-strong: #c4c7be;
+  --hatch: #eeede8;
+  --accent: #0071e3;
+  --accent-hover: #0077ed;
+  --accent-2: #8e5cf7;
+  --selected: #e8f1fc;
+  --danger: #d70015;
+  --success: #248a3d;
+  --success-soft: #248a3d14;
+  --sweep: #0071e314;
+  --glow: #0071e30f;
+  --panel-shadow: 0 2px 6px #0000000a, 0 24px 60px -18px #0000002e;
+  --card-shadow: 0 1px 2px #0000000a;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+  --frame: 1240px;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --spring: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter Variable", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter Variable", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #191b19;
+    --surface: #202320;
+    --content: #252825;
+    --control: #313630;
+    --hover: #444a42;
+    --text: #f0efeb;
+    --muted: #afb5aa;
+    --faint: #74776f;
+    --line: #343a32;
+    --line-strong: #444a42;
+    --hatch: #222620;
+    --accent: #2997ff;
+    --accent-hover: #47a6ff;
+    --accent-2: #b48cff;
+    --selected: #0f2a47;
+    --danger: #ff453a;
+    --success: #30d158;
+    --success-soft: #30d1581f;
+    --sweep: #2997ff26;
+    --glow: #2997ff14;
+    --panel-shadow: 0 2px 6px #00000080, 0 30px 70px -20px #000000e6;
+    --card-shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #191b19;
+  --surface: #202320;
+  --content: #252825;
+  --control: #313630;
+  --hover: #444a42;
+  --text: #f0efeb;
+  --muted: #afb5aa;
+  --faint: #74776f;
+  --line: #343a32;
+  --line-strong: #444a42;
+  --hatch: #222620;
+  --accent: #2997ff;
+  --accent-hover: #47a6ff;
+  --accent-2: #b48cff;
+  --selected: #0f2a47;
+  --danger: #ff453a;
+  --success: #30d158;
+  --success-soft: #30d1581f;
+  --sweep: #2997ff26;
+  --glow: #2997ff14;
+  --panel-shadow: 0 2px 6px #00000080, 0 30px 70px -20px #000000e6;
+  --card-shadow: none;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+/* ── Base ──────────────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+[hidden] {
+  display: none !important;
+}
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px;
+  interpolate-size: allow-keywords;
+  /* The hatched rails: visible wherever the centered frame doesn't cover. */
+  background:
+    repeating-linear-gradient(-45deg, transparent 0 9px, var(--hatch) 9px 10px),
+    var(--page);
+}
+body {
+  font-family: var(--sans);
+  font-size: 17px;
+  line-height: 1.47;
+  letter-spacing: -0.012em;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-optical-sizing: auto;
+  overflow-x: clip;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+button {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+}
+svg {
+  flex-shrink: 0;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* Iconify icons are fill-based; don't inherit the line-icon stroke. */
+svg.icon {
+  stroke: none;
+}
+code,
+kbd,
+pre {
+  font-family: var(--mono);
+  font-size: 0.88em;
+  letter-spacing: 0;
+}
+::selection {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* ── Frame & crossing hairlines ───────────────────────────────── */
+
+.wrap {
+  width: 100%;
+  max-width: var(--frame);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+/* A framed band: the centered column with vertical hairlines, a
+   full-bleed hairline across its top, and "+" marks where they cross. */
+.frame,
+.section {
+  position: relative;
+  max-width: var(--frame);
+  margin: 0 auto;
+  border-inline: 1px solid var(--line);
+  background: var(--page);
+}
+.frame::before,
+.section::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  width: 100vw;
+  height: 1px;
+  margin-left: -50vw;
+  background: var(--line);
+  pointer-events: none;
+}
+.frame::after,
+.section::after {
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: -7px;
+  right: -7px;
+  height: 13px;
+  z-index: 2;
+  pointer-events: none;
+  --c: var(--line-strong);
+  background:
+    linear-gradient(var(--c), var(--c)) 6px 0 / 1px 13px no-repeat,
+    linear-gradient(var(--c), var(--c)) 0 6px / 13px 1px no-repeat,
+    linear-gradient(var(--c), var(--c)) calc(100% - 6px) 0 / 1px 13px no-repeat,
+    linear-gradient(var(--c), var(--c)) 100% 6px / 13px 1px no-repeat;
+}
+.section {
+  padding: 104px 64px;
+}
+@media (max-width: 760px) {
+  .section {
+    padding: 80px 20px;
+  }
+}
+/* Small standalone "+" mark for internal intersections. */
+.cross {
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--line-strong), var(--line-strong)) 6px 0 / 1px 13px no-repeat,
+    linear-gradient(var(--line-strong), var(--line-strong)) 0 6px / 13px 1px no-repeat;
+}
+
+/* ── Type ──────────────────────────────────────────────────────── */
+
+.eyebrow,
+.pill {
+  display: inline-block;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.016em;
+  color: var(--accent);
+}
+.section-head {
+  max-width: 760px;
+  margin-bottom: 48px;
+}
+.section-head.center {
+  margin-inline: auto;
+  text-align: center;
+}
+.section-head h2 {
+  margin-top: 10px;
+  font-family: var(--display);
+  font-size: clamp(32px, 3.7vw, 46px);
+  font-weight: 600;
+  line-height: 1.07;
+  letter-spacing: -0.022em;
+  text-wrap: balance;
+}
+.section-head h2 .dim,
+.dim {
+  color: var(--muted);
+}
+.section-head p {
+  margin-top: 18px;
+  font-size: clamp(19px, 1.7vw, 21px);
+  line-height: 1.38;
+  letter-spacing: -0.016em;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+.section-head.center p {
+  margin-inline: auto;
+  max-width: 34em;
+}
+.mono-label {
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  color: var(--muted);
+}
+.gradient-text {
+  color: var(--text);
+}
+
+/* ── Buttons ───────────────────────────────────────────────────── */
+
+.key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 22px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--control);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 200ms,
+    border-color 200ms,
+    color 200ms;
+}
+.key:hover {
+  background: var(--hover);
+}
+.key-primary {
+  background: var(--text);
+  color: var(--page);
+}
+.key-primary:hover {
+  background: color-mix(in srgb, var(--text) 86%, var(--page));
+}
+.key-ghost {
+  background: transparent;
+  border-color: var(--line-strong);
+}
+.key-ghost:hover {
+  background: var(--surface);
+  border-color: var(--muted);
+}
+.key .arrow {
+  transition: transform 300ms var(--ease);
+}
+.key:hover .arrow {
+  transform: translateX(3px);
+}
+/* Apple-style text link with a chevron. */
+.more-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--text);
+  font-weight: 500;
+}
+.more-link::after {
+  content: "›";
+  font-size: 1.25em;
+  line-height: 1;
+  transform: translateY(-1px);
+  transition: transform 250ms var(--ease);
+}
+.more-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.more-link:hover::after {
+  transform: translate(3px, -1px);
+}
+
+/* ── Surfaces ──────────────────────────────────────────────────── */
+
+.card {
+  position: relative;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid transparent;
+  overflow: hidden;
+}
+:root[data-theme="dark"] .card {
+  border-color: var(--line);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .card {
+    border-color: var(--line);
+  }
+}
+
+.pill-dot {
+  position: relative;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+}
+.pill-dot::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1.5px solid var(--success);
+  animation: ping 2.4s var(--ease) infinite;
+}
+
+/* ── Motion ────────────────────────────────────────────────────── */
+
+/* Scroll reveal: a calm fade and rise. Content is visible without JS. */
+.js [data-reveal] {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 500ms var(--ease),
+    transform 500ms var(--ease);
+  transition-delay: calc(var(--d, 0) * 90ms);
+}
+.js [data-reveal].is-in {
+  opacity: 1;
+  transform: none;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 320ms;
+}
+
+@keyframes ping {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.8;
+  }
+  80%,
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+/* Shiki dual-theme code blocks (blog). */
+.astro-code,
+.astro-code span {
+  color: var(--shiki-light);
+  background-color: var(--shiki-light-bg);
+}
+:root[data-theme="dark"] .astro-code,
+:root[data-theme="dark"] .astro-code span {
+  color: var(--shiki-dark);
+  background-color: var(--shiki-dark-bg);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .astro-code,
+  :root:not([data-theme="light"]) .astro-code span {
+    color: var(--shiki-dark);
+    background-color: var(--shiki-dark-bg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .js [data-reveal] {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Native browser affordances belong to the same quiet palette. */
+html { scrollbar-color: var(--line-strong) var(--page); }
+input, textarea { caret-color: var(--accent); }
+
+/* Registration marks need gutters; omit them when the frame fills the screen. */
+@media (max-width: 1254px) {
+  .frame::after, .section::after, .cross { display: none; }
+}

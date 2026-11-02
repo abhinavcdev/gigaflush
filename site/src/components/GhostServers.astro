@@ -1,0 +1,115 @@
+---
+import GhostPorts from "./react/GhostPorts.tsx";
+import Icon from "./Icon.astro";
+
+const rules = [
+  { icon: "ph:plugs", title: "Nothing connected", body: "A browser tab or client on the port means it's in use. It stays." },
+  { icon: "ph:moon-stars", title: "Quiet for hours", body: "Running at least 30 minutes, under 2% CPU on average, and either orphaned or 6+ hours old." },
+  { icon: "ph:user-circle", title: "Yours, and only dev runtimes", body: "Your own Node, Bun, Deno, Python, Ruby and PHP servers. Never databases, Docker, editors, agents or language servers." },
+  { icon: "ph:hand-palm", title: "Asked, not killed", body: "Re-checked by PID and start time, then sent SIGTERM, exactly like Ctrl+C." },
+];
+---
+
+<section class="section" id="servers">
+  <div class="grid">
+    <div class="demo" data-reveal style="--d:1">
+      <GhostPorts client:visible />
+    </div>
+    <div>
+      <div class="section-head" data-reveal>
+        <span class="eyebrow">New · macOS and Linux</span>
+        <h2>Your ports are haunted. <span class="dim">Flush the ghosts.</span></h2>
+        <p>
+          Closed terminals and coding agents leave dev servers running for days. They hold <code>:3000</code>,
+          eat memory, and greet you with <code>EADDRINUSE</code>. The Servers tab finds the ones nothing is talking to.
+        </p>
+      </div>
+      <ul class="rules">
+        {
+          rules.map((r, i) => (
+            <li data-reveal style={`--d:${i}`}>
+              <span class="ico">
+                <Icon name={r.icon} size={18} />
+              </span>
+              <div>
+                <b>{r.title}</b>
+                <p>{r.body}</p>
+              </div>
+            </li>
+          ))
+        }
+      </ul>
+      <a class="more-link" href="/blog/port-already-in-use-ghost-dev-servers" data-reveal>
+        How it decides what's idle
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
+    gap: 64px;
+    align-items: center;
+  }
+  .section-head {
+    margin-bottom: 32px;
+  }
+  .eyebrow {
+    display: inline-block;
+    margin-bottom: 14px;
+    color: var(--accent-2);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .section-head code {
+    font-family: var(--mono);
+    font-size: 0.86em;
+    padding: 1px 5px;
+    border-radius: 5px;
+    background: var(--control);
+  }
+  .rules {
+    list-style: none;
+    display: grid;
+    gap: 20px;
+  }
+  .rules li {
+    display: flex;
+    gap: 14px;
+  }
+  .ico {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--control);
+    color: var(--accent-2);
+  }
+  .rules b {
+    font-weight: 600;
+  }
+  .rules p {
+    margin-top: 3px;
+    color: var(--muted);
+    font-size: 14.5px;
+  }
+  .more-link {
+    margin-top: 28px;
+  }
+  .demo {
+    min-width: 0;
+  }
+  @media (max-width: 900px) {
+    .grid {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 40px;
+    }
+    .demo {
+      order: 2;
+    }
+  }
+</style>

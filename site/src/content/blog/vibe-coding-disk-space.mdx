@@ -1,0 +1,69 @@
+---
+title: "Vibe coding is eating your disk. Here's where the gigabytes go."
+description: "AI coding tools make it free to start a new project, but every one ships with its own node_modules, target or build folder. How vibe coders run out of disk space, and how to get it back."
+date: 2026-11-01
+tags: ["vibe coding", "node_modules", "disk space"]
+keywords: ["vibe coding disk space", "cursor projects disk space", "claude code node_modules", "mac storage full developer", "too many node_modules", "ai coding side projects storage", "free up disk space vibe coding"]
+accent: "#a78bfa"
+featured: true
+figure: vibe-scale
+---
+
+import ProjectPileUp from "../../components/react/ProjectPileUp.tsx";
+import SpaceCalculator from "../../components/react/SpaceCalculator.tsx";
+import Callout from "../../components/blog/Callout.astro";
+
+Starting a project used to take an afternoon. Now it takes one prompt. Ask Cursor, Claude Code, Copilot or a browser builder for "a habit tracker with auth" and a minute later you have a working Next.js app, and a fresh `node_modules` folder sitting on your disk.
+
+That's the part nobody mentions. **The code is a few hundred kilobytes. The dependencies are hundreds of megabytes.** Do that every evening for a month and your "Storage almost full" warning arrives right on schedule.
+
+## Every idea ships with its own dependencies
+
+Try it. Each click below is one weekend idea, scaffolded the usual way:
+
+<ProjectPileUp client:visible />
+
+Nothing here is wrong. `node_modules`, Rust's `target`, Flutter's `build` and friends are supposed to be big: they hold every dependency and every compiled artifact so your next build is fast. The problem is that they **stay** after you've moved on. Most vibe-coded projects are opened a handful of times and then forgotten, along with everything they installed.
+
+## Why it adds up faster than you'd think
+
+- **No sharing between projects.** With npm and Yarn Classic, every project gets its own full copy of `react`, `typescript`, `esbuild` and the rest. Ten Next.js apps means ten copies.
+- **Native binaries.** Modern JavaScript tooling ships compiled binaries for your platform: SWC, esbuild, Lightningcss, Sharp. They're fast, and they're not small.
+- **Rust and Flutter are worse.** A Rust `target` folder keeps debug builds, release builds and an incremental-compilation cache. A Flutter app keeps build output for every platform you've run it on.
+- **Clones and worktrees.** Agents love git worktrees and fresh clones. Each one is a new place for dependencies to be installed.
+
+## How much is yours?
+
+Rough per-project averages hide a lot of variation, but they're useful for a gut check. Slide in your own numbers:
+
+<SpaceCalculator client:visible />
+
+To see the real figure on macOS or Linux, run this from your projects folder:
+
+```bash
+find . -name node_modules -type d -prune -exec du -sh {} + | sort -h
+```
+
+<Callout type="tip" title="Use -prune">
+  Without `-prune`, `find` walks into every `node_modules` and also lists the nested ones inside it, which is slow and double-counts.
+</Callout>
+
+## Getting the space back
+
+You have three options, from most manual to least:
+
+1. **Delete by hand.** `rm -rf some-project/node_modules`, project by project. Fine for two folders, tedious for forty.
+2. **One big `find … -exec rm -rf`.** Fast, but it's a blind delete: no review, no size, and an easy way to hit something you didn't mean to. See [how to delete all node_modules folders safely](/blog/delete-all-node-modules) for the careful version.
+3. **Use a tool that shows you first.** That's why we built [Gigaflush](/): it scans a folder, lists every rebuildable folder across Node, Rust, Flutter, Python, Swift, Gradle and Maven, sorted by size, and only removes the ones you tick after showing you the exact paths.
+
+Whatever you use, deleting these folders is safe as long as the project can reinstall them. Your source code, lockfiles and git history aren't touched, and `npm install` (or `cargo build`, or `flutter pub get`) brings everything back the next time you open the project.
+
+## Habits that keep it under control
+
+- **Prefer pnpm for new JavaScript projects.** pnpm keeps one copy of each package version in a global store and links it into projects, so ten apps don't mean ten copies.
+- **Share a Cargo target directory** for small Rust experiments by setting `CARGO_TARGET_DIR`. Read more in our [Rust target folder guide](/blog/rust-target-folder-size).
+- **Archive what you're done with.** Push it to GitHub, then delete the local generated folders, or the whole clone.
+- **Do a monthly sweep.** Point Gigaflush (or your `find` command) at your projects folder once a month and clear out anything you haven't touched.
+- **Check for servers the agent left running.** Agents start `vite` and `next dev` to test their work and often never stop them. They hold ports and memory for days. See [Port 3000 already in use?](/blog/port-already-in-use-ghost-dev-servers)
+
+AI made starting projects nearly free. Cleaning up after them can be just as cheap.

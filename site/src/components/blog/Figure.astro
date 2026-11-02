@@ -1,0 +1,80 @@
+---
+// An Anatomy figure: the drawing is built here at build time, and its live
+// module (the same file) is loaded in the browser to move it.
+import "../../anatomy/theme.css";
+
+interface Props {
+  name: string;
+  still?: boolean;
+}
+const { name, still = false } = Astro.props;
+const modules = import.meta.glob("../../anatomy/figures/*.mjs", { eager: true }) as Record<string, any>;
+const mod = modules[`../../anatomy/figures/${name}.mjs`];
+if (!mod) throw new Error(`Unknown figure: ${name}`);
+const { meta } = mod;
+const { svg, readout } = mod.figure();
+---
+
+<div class="iso fig-wrap" data-anatomy={still ? undefined : name}>
+  <figure class="iso-figure">
+    <div class="iso-plate">
+      <div class="iso-plate-corners" aria-hidden="true">
+        <span class="iso-plate-corner" data-corner="fig">{meta.fig}</span>
+        <span class="iso-plate-corner" data-corner="title">{meta.title}</span>
+        {!still && <span class="iso-plate-corner" data-corner="hint">{meta.hint}</span>}
+        <span class="iso-plate-corner" data-corner="readout" data-readout>{readout}</span>
+      </div>
+      <div
+        class="iso-stage"
+        tabindex={still ? undefined : 0}
+        role={still ? undefined : meta.role ?? "slider"}
+        aria-label={still ? undefined : meta.control}
+        set:html={svg}
+      />
+    </div>
+    {
+      !still && (
+        <figcaption class="iso-legend">
+          <span class="iso-keys">
+            {meta.keys.map((key: { mark: string; label: string }) => (
+              <span class="iso-key">
+                <svg class="iso-swatch" data-mark={key.mark} viewBox="0 0 16 10" aria-hidden="true">
+                  {key.mark === "raised" || key.mark === "lit" ? (
+                    <>
+                      <path d="M2 4.5 8 1.5 14 4.5 14 6 8 9 2 6Z" />
+                      <path class="iso-swatch-crease" d="M2 4.5 8 7.5 14 4.5" />
+                    </>
+                  ) : key.mark === "flat" ? (
+                    <path d="M2 6.5 8 3.5 14 6.5 8 9.5Z" />
+                  ) : (
+                    <path d="M1.5 5h13" />
+                  )}
+                </svg>
+                {key.label}
+              </span>
+            ))}
+          </span>
+          <span class="iso-caption">{meta.caption}</span>
+        </figcaption>
+      )
+    }
+  </figure>
+</div>
+
+<script>
+  const modules = import.meta.glob("../../anatomy/figures/*.mjs");
+  document.querySelectorAll<HTMLElement>("[data-anatomy]").forEach(async (root) => {
+    if (root.dataset.mounted) return;
+    root.dataset.mounted = "1";
+    const load = modules[`../../anatomy/figures/${root.dataset.anatomy}.mjs`];
+    if (!load) return;
+    const mod: any = await load();
+    mod.mount(root.querySelector(".iso-stage"), root.querySelector("[data-readout]"));
+  });
+</script>
+
+<style>
+  .fig-wrap {
+    margin: 36px 0 40px;
+  }
+</style>

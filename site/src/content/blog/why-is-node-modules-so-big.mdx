@@ -1,0 +1,78 @@
+---
+title: "Why is node_modules so big? A practical look inside"
+description: "Transitive dependencies, platform binaries, duplicated versions and per-project copies: what actually fills node_modules, how to inspect it, and how npm, pnpm and Yarn differ."
+date: 2026-11-01
+tags: ["node_modules", "javascript", "explainer"]
+keywords: ["why is node_modules so big", "node_modules size", "reduce node_modules size", "npm vs pnpm disk space", "pnpm store", "yarn pnp", "node_modules heaviest objects", "npm ls all", "npm dedupe"]
+accent: "#68aeff"
+figure: tier-rack
+---
+
+import DependencyBurst from "../../components/react/DependencyBurst.tsx";
+import CommandTabs from "../../components/react/CommandTabs.tsx";
+import Callout from "../../components/blog/Callout.astro";
+
+The joke about `node_modules` being the heaviest object in the universe has been around for a decade, and it keeps landing because it keeps being true. But "JavaScript is bloated" doesn't explain much. Here's what actually ends up in there.
+
+## One install, many packages
+
+You add one dependency. That package has dependencies, and they have dependencies. npm installs the whole tree:
+
+<DependencyBurst client:visible />
+
+A typical web framework pulls in hundreds of packages. Most are small and single-purpose, but there are a lot of them, and every one is a folder full of files: the code, often a second build of it (CommonJS and ESM), TypeScript type definitions, source maps, a README and a license.
+
+## The big four contributors
+
+### 1. Transitive dependencies
+
+Small utilities used by many packages add up. They're also why the file *count* is so high. Tens of thousands of small files is normal, and it's what makes deleting `node_modules` slow, especially on Windows.
+
+### 2. Platform binaries
+
+Fast modern tooling is written in Go, Rust or C++ and published as precompiled binaries: esbuild, SWC (used by Next.js), Lightningcss, Turbopack, Sharp's libvips, Prisma's engines. Each is installed as a platform-specific package like `@esbuild/darwin-arm64`. A single binary can be tens of megabytes on its own.
+
+### 3. Duplicate versions
+
+If two of your dependencies need incompatible versions of the same package, npm installs both, nested in different places. `npm dedupe` can sometimes collapse them, but often the ranges genuinely conflict.
+
+### 4. Every project has its own copy
+
+With npm and Yarn Classic, ten projects using React means ten copies of React on disk. This is the part that makes **your machine** heavy, rather than any one project.
+
+## How to see what's taking the space
+
+<CommandTabs
+  client:visible
+  id="inspect"
+  tabs={[
+    { label: "Largest packages", code: "du -sh node_modules/* node_modules/@*/* 2>/dev/null | sort -h | tail -20" },
+    { label: "Package count", code: "npm ls --all --parseable | wc -l" },
+    { label: "Why is X here?", code: "npm explain esbuild\n# or: pnpm why esbuild / yarn why esbuild" },
+    { label: "Collapse duplicates", code: "npm dedupe" },
+  ]}
+/>
+
+<Callout type="tip">
+  Look for packages you don't recognise near the top of the size list, then run `npm explain` on them. A dev-only tool pulled in as a production dependency is a common surprise.
+</Callout>
+
+## npm vs pnpm vs Yarn: disk usage
+
+| Package manager | How it stores packages | Disk impact across many projects |
+|---|---|---|
+| **npm** | A full copy in each project's `node_modules` | Grows with every project |
+| **Yarn Classic (v1)** | Same as npm | Grows with every project |
+| **pnpm** | One copy per version in a global content-addressable store, hard-linked into projects | Much smaller when projects share versions |
+| **Yarn Berry (PnP)** | Zipped packages in a cache, no `node_modules` by default | Small, but some tools need configuration |
+
+Two caveats:
+
+- pnpm's store lives in one place and keeps growing too. `pnpm store prune` removes packages no project references any more.
+- Tools that measure folder sizes (including `du` and Gigaflush) count a hard-linked file in every project that links it. The space you'd **actually** free by deleting one pnpm project's `node_modules` can be smaller than the size shown, because the store still holds the files.
+
+## So should you worry?
+
+Not about any single project: that space is buying you fast, reproducible builds. Worry about the **projects you've stopped working on**. Their `node_modules` are pure cache, and they're the easiest gigabytes you'll ever reclaim.
+
+That's the job [Gigaflush](/) does: scan your projects folder, show every `node_modules` (and Rust, Flutter, Python, Swift, Gradle and Maven build folders) largest first, and remove the ones you pick. For the command-line way, see [how to delete all node_modules folders](/blog/delete-all-node-modules).

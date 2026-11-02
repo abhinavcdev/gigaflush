@@ -1,0 +1,84 @@
+---
+title: "Why is my Rust target folder so big? (And how to clean it)"
+description: "What lives in Cargo's target directory, why it grows to gigabytes, and the safe ways to shrink it: cargo clean, cargo-sweep, a shared CARGO_TARGET_DIR and lighter debug info."
+date: 2026-11-01
+tags: ["rust", "cargo", "disk space"]
+keywords: ["rust target folder size", "cargo target directory huge", "cargo clean", "cargo sweep", "CARGO_TARGET_DIR", "reduce rust build size disk", "delete target folder rust", "rust incremental cache size"]
+accent: "#f0a36b"
+figure: rust-target
+---
+
+import CommandTabs from "../../components/react/CommandTabs.tsx";
+import SpaceCalculator from "../../components/react/SpaceCalculator.tsx";
+import Callout from "../../components/blog/Callout.astro";
+
+If you've written Rust for a while, you've seen it: a few thousand lines of code and a `target` folder measured in gigabytes. It isn't a bug. Cargo trades disk for build speed, aggressively. Here's what it keeps, and how to take some back.
+
+## What's inside target/
+
+- **`target/debug/`** holds the output of `cargo build`, `cargo test` and `cargo run`. Every dependency is compiled here, with full debug info by default.
+- **`target/release/`** holds optimized builds from `--release`, a second full set.
+- **`target/debug/incremental/`** is the incremental-compilation cache. It makes rebuilds fast, and it's frequently the biggest single directory.
+- **`target/debug/deps/`** contains compiled dependencies, including **old versions** left behind when you update a crate or change features. Cargo doesn't garbage-collect these.
+- **Per-target triples** like `target/aarch64-apple-darwin/` appear when you cross-compile, as yet another full set.
+- **`target/doc/`** comes from `cargo doc`.
+
+Switching toolchains (stable, nightly, a new compiler release) also produces fresh artifacts while the old ones stay put.
+
+## Is it safe to delete?
+
+Yes. `target` is entirely generated. Delete it and the next `cargo build` recompiles everything: correct, just slower the first time. Your `Cargo.lock` and source are untouched.
+
+## Cleaning options, from blunt to precise
+
+<CommandTabs
+  client:visible
+  id="cargo"
+  tabs={[
+    { label: "Everything", code: "cargo clean", note: "Removes the whole target directory for this workspace." },
+    { label: "Release only", code: "cargo clean --release", note: "Keeps your debug builds, drops the optimized ones." },
+    { label: "One package", code: "cargo clean -p my-crate" },
+    { label: "Stale only (cargo-sweep)", code: "cargo install cargo-sweep\ncargo sweep --time 30      # artifacts not used in 30 days\ncargo sweep --installed    # artifacts from toolchains you no longer have", note: "cargo-sweep is a community tool. Check its README for the current flags." },
+  ]}
+/>
+
+<Callout type="tip" title="Many projects at once">
+  `cargo clean` works one workspace at a time. To clear `target` across every Rust project in a folder, use `find . -name target -type d -prune` together with a check for `Cargo.toml`, or let Gigaflush do the matching. It only lists `target` when a `Cargo.toml` sits beside it, so a Maven `target` or an unrelated folder named target isn't mistaken for Rust's.
+</Callout>
+
+## Make target grow slower
+
+### Share one target directory
+
+For lots of small experiments, point Cargo at one shared directory so common dependencies compile once:
+
+```bash
+# ~/.zshrc or ~/.bashrc
+export CARGO_TARGET_DIR="$HOME/.cache/cargo-target"
+```
+
+The downside is that concurrent builds of different projects contend for a lock, and one `cargo clean` clears everything. Many people only do this for scratch projects.
+
+### Emit less debug info
+
+Full debug info is a large share of `target/debug`. If you don't step through dependencies in a debugger, reduce it in `Cargo.toml`:
+
+```toml
+[profile.dev]
+debug = "line-tables-only"   # keeps file:line in backtraces
+
+[profile.dev.package."*"]
+debug = false                # no debug info for dependencies
+```
+
+### Prune after big updates
+
+After `cargo update` or a toolchain upgrade, old artifacts stick around. That's the moment to run `cargo clean` (or `cargo sweep`) on projects you're actively building.
+
+## How much could you get back?
+
+Rust projects dominate disk usage quickly. Try a couple more in this estimate:
+
+<SpaceCalculator client:visible />
+
+For the projects you're not touching this month, the answer is simple: delete `target` and move on. You'll pay one cold build when you come back. That's a good trade for gigabytes now.

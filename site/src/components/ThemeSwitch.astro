@@ -1,0 +1,91 @@
+---
+import Icon from "./Icon.astro";
+const modes = [
+  { id: "system", label: "System", icon: "ph:desktop" },
+  { id: "light", label: "Light", icon: "ph:sun" },
+  { id: "dark", label: "Dark", icon: "ph:moon" },
+];
+---
+
+<div class="theme-switch" role="radiogroup" aria-label="Color theme">
+  {
+    modes.map((m) => (
+      <button type="button" role="radio" aria-checked="false" data-theme-option={m.id} title={`${m.label} theme`} aria-label={`${m.label} theme`}>
+        <Icon name={m.icon} size={15} />
+      </button>
+    ))
+  }
+</div>
+
+<script>
+  const KEY = "gigaflush:theme";
+  const root = document.documentElement;
+  const buttons = [...document.querySelectorAll<HTMLButtonElement>("[data-theme-option]")];
+
+  function current() {
+    return root.dataset.theme ?? "system";
+  }
+  function sync() {
+    for (const b of buttons) {
+      const selected = b.dataset.themeOption === current();
+      b.setAttribute("aria-checked", String(selected));
+      b.tabIndex = selected ? 0 : -1;
+    }
+  }
+  function apply(mode: string) {
+    const go = () => {
+      if (mode === "system") delete root.dataset.theme;
+      else root.dataset.theme = mode;
+      sync();
+    };
+    try {
+      localStorage.setItem(KEY, mode);
+    } catch {}
+    // Crossfade the whole page where supported; plain switch elsewhere.
+    const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown };
+    if (doc.startViewTransition && !matchMedia("(prefers-reduced-motion: reduce)").matches) doc.startViewTransition(go);
+    else go();
+  }
+  for (const b of buttons) b.addEventListener("click", () => apply(b.dataset.themeOption!));
+  for (const [index, button] of buttons.entries()) button.addEventListener("keydown", (event) => {
+    const offset = ["ArrowRight", "ArrowDown"].includes(event.key) ? 1 : ["ArrowLeft", "ArrowUp"].includes(event.key) ? -1 : 0;
+    if (!offset && event.key !== "Home" && event.key !== "End") return;
+    event.preventDefault();
+    const next = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : (index + offset + buttons.length) % buttons.length;
+    buttons[next].focus();
+    apply(buttons[next].dataset.themeOption!);
+  });
+  sync();
+</script>
+
+<style>
+  .theme-switch {
+    display: inline-flex;
+    padding: 2px;
+    gap: 0;
+    border-radius: 999px;
+    background: var(--control);
+  }
+  button {
+    width: 28px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition:
+      background-color 160ms,
+      color 160ms;
+  }
+  button:hover {
+    color: var(--text);
+  }
+  button[aria-checked="true"] {
+    background: var(--content);
+    color: var(--text);
+    box-shadow: 0 1px 2px #0000001f;
+  }
+</style>

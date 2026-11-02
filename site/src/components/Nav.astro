@@ -1,0 +1,142 @@
+---
+import Mark from "./Mark.astro";
+import ThemeSwitch from "./ThemeSwitch.astro";
+import Icon from "./Icon.astro";
+
+const path = Astro.url.pathname;
+const home = path === "/" ? "" : "/";
+const links = [
+  { href: `${home}#how`, label: "How it works" },
+  { href: `${home}#ecosystems`, label: "Ecosystems" },
+  { href: `${home}#servers`, label: "Servers" },
+  { href: "/guides", label: "Guides" },
+  { href: "/blog", label: "Blog" },
+  { href: `${home}#pricing`, label: "Pricing" },
+];
+---
+
+<header class="nav" data-nav>
+  <div class="inner">
+    <a href="/" class="logo" aria-label="Gigaflush home">
+      <Mark size={25} tile={false} />
+      <span>Gigaflush</span>
+    </a>
+    <nav class="links" aria-label="Main">
+      {
+        links.map((l) => (
+          <a href={l.href} class:list={{ active: !l.href.includes("#") && path.startsWith(l.href) }}>
+            {l.label}
+          </a>
+        ))
+      }
+    </nav>
+    <div class="end">
+      <ThemeSwitch />
+      <a href={`${home}#pricing`} class="key key-primary cta" data-press>Get Gigaflush</a>
+    </div>
+    <details class="mobile-menu">
+      <summary aria-label="Navigation menu"><Icon name="ph:list" size={22} /></summary>
+      <nav aria-label="Mobile">{links.map((l) => <a href={l.href}>{l.label}</a>)}</nav>
+    </details>
+  </div>
+</header>
+
+<script>
+  const nav = document.querySelector<HTMLElement>("[data-nav]")!;
+  const onScroll = () => nav.classList.toggle("is-scrolled", scrollY > 4);
+  addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+  document.querySelectorAll(".mobile-menu a").forEach((link) => link.addEventListener("click", () => {
+    document.querySelector<HTMLDetailsElement>(".mobile-menu")!.open = false;
+  }));
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") document.querySelector<HTMLDetailsElement>(".mobile-menu")!.open = false;
+  });
+</script>
+
+<style>
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--page);
+    border-bottom: 1px solid var(--line);
+  }
+  .inner {
+    max-width: var(--frame);
+    height: 72px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    padding: 0 24px;
+    border-inline: 1px solid var(--line);
+  }
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.022em;
+  }
+  .links {
+    display: flex;
+    gap: 24px;
+    font-size: 14px;
+    letter-spacing: -0.01em;
+    color: var(--muted);
+  }
+  .links a {
+    transition: color 200ms;
+  }
+  .links a:hover,
+  .links a.active {
+    color: var(--text);
+  }
+  .end {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .gh {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    color: var(--muted);
+    transition:
+      color 200ms,
+      background-color 200ms;
+  }
+  .gh:hover {
+    color: var(--text);
+    background: var(--control);
+  }
+  .cta {
+    height: 36px;
+    padding: 0 16px;
+    font-size: 13px;
+  }
+  .mobile-menu { display: none; }
+  .mobile-menu summary { display: grid; place-items: center; width: 36px; height: 40px; cursor: pointer; list-style: none; }
+  .mobile-menu summary::-webkit-details-marker { display: none; }
+  .mobile-menu nav { position: absolute; top: 71px; left: 0; right: 0; padding: 16px 24px; background: var(--page); border-bottom: 1px solid var(--line); display: grid; }
+  .mobile-menu nav a { padding: 12px 0; }
+  @media (max-width: 960px) {
+    .mobile-menu { display: block; }
+    .links {
+      display: none;
+    }
+  }
+  @media (max-width: 520px) {
+    .inner {
+      padding: 0 12px;
+      gap: 12px;
+    }
+    .end { gap: 8px; }
+    .cta { display: none; }
+  }
+</style>

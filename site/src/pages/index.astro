@@ -1,0 +1,56 @@
+---
+import Base from "../layouts/Base.astro";
+import Hero from "../components/Hero.astro";
+import HowItWorks from "../components/HowItWorks.astro";
+import Ecosystems from "../components/Ecosystems.astro";
+import Safety from "../components/Safety.astro";
+import GhostServers from "../components/GhostServers.astro";
+import Bento from "../components/Bento.astro";
+import Pricing from "../components/Pricing.astro";
+import LatestPosts from "../components/LatestPosts.astro";
+import Faq from "../components/Faq.astro";
+import FinalCta from "../components/FinalCta.astro";
+import { GITHUB_URL } from "../config";
+
+const site = Astro.site!.href;
+const schema = [
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "Gigaflush",
+    applicationCategory: "DeveloperApplication",
+    operatingSystem: "macOS, Windows, Linux",
+    description: "Open-source tray app that finds and deletes node_modules, Rust target, Flutter build and other rebuildable developer folders to free disk space, and stops idle dev servers left running on localhost ports.",
+    url: site,
+    downloadUrl: new URL("/#pricing", site).href,
+    license: "https://www.gnu.org/licenses/gpl-3.0.html",
+    codeRepository: GITHUB_URL,
+    offers: [
+      { "@type": "Offer", name: "macOS (signed)", price: "4.99", priceCurrency: "USD" },
+      { "@type": "Offer", name: "Windows (signed)", price: "4.99", priceCurrency: "USD" },
+      { "@type": "Offer", name: "Linux", price: "0", priceCurrency: "USD" },
+    ],
+  },
+  { "@context": "https://schema.org", "@type": "Organization", name: "Gigaflush", url: site, logo: new URL("/apple-touch-icon.png", site).href, sameAs: [GITHUB_URL] },
+  { "@context": "https://schema.org", "@type": "WebSite", name: "Gigaflush", url: site },
+];
+---
+
+<Base
+  title="Gigaflush — delete node_modules, Rust target & build caches to free disk space"
+  description="Open-source menu-bar app for macOS, Windows and Linux. Find every node_modules, Rust target, Flutter build, Python and Gradle cache across your projects, reclaim gigabytes, and stop the idle dev servers your agents left running."
+  schema={schema}
+>
+  <main>
+    <Hero />
+    <HowItWorks />
+    <Ecosystems />
+    <Safety />
+    <GhostServers />
+    <Bento />
+    <Pricing />
+    <LatestPosts />
+    <Faq />
+    <FinalCta />
+  </main>
+</Base>

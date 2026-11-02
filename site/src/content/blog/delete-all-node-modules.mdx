@@ -1,0 +1,92 @@
+---
+title: "How to delete all node_modules folders (macOS, Linux and Windows)"
+description: "Copy-paste commands to find, measure and delete every node_modules folder under a directory, plus the safety checks that keep you from deleting the wrong thing."
+date: 2026-11-01
+tags: ["node_modules", "how-to", "disk space"]
+keywords: ["delete all node_modules", "remove node_modules recursively", "find and delete node_modules", "delete node_modules mac", "delete node_modules windows powershell", "rm -rf node_modules all folders", "npkill", "clean node_modules"]
+accent: "#5FA04E"
+figure: gantry-picker
+---
+
+import CommandTabs from "../../components/react/CommandTabs.tsx";
+import SafeToDelete from "../../components/react/SafeToDelete.tsx";
+import Callout from "../../components/blog/Callout.astro";
+
+`node_modules` folders are rebuildable: delete one and `npm install` (or `pnpm install`, or `yarn`) puts it back. That makes them the easiest disk space to reclaim on a developer machine. Here's how to do it for every project at once, in three steps: **list, measure, then delete.**
+
+## Step 1: list them
+
+Always look before you delete. Run these from the folder that holds your projects, not from `/` or your whole home folder on the first try.
+
+<CommandTabs
+  client:visible
+  id="list"
+  tabs={[
+    { label: "macOS / Linux", code: "find . -name node_modules -type d -prune -print" },
+    { label: "PowerShell", code: "Get-ChildItem -Path . -Directory -Recurse -Filter node_modules -ErrorAction SilentlyContinue |\n  Where-Object { $_.FullName -notmatch 'node_modules.+node_modules' } |\n  Select-Object -ExpandProperty FullName" },
+    { label: "cmd.exe", code: "dir /s /b /ad node_modules" },
+  ]}
+/>
+
+`-prune` matters: it stops `find` from descending into a `node_modules` it has already found, so you get only the top-level folder for each project, and the command finishes far sooner.
+
+## Step 2: measure them
+
+<CommandTabs
+  client:visible
+  id="size"
+  tabs={[
+    { label: "macOS / Linux", code: "find . -name node_modules -type d -prune -exec du -sh {} + | sort -h" },
+    { label: "PowerShell", code: "Get-ChildItem -Path . -Directory -Recurse -Filter node_modules -ErrorAction SilentlyContinue |\n  Where-Object { $_.FullName -notmatch 'node_modules.+node_modules' } |\n  ForEach-Object {\n    $size = (Get-ChildItem $_.FullName -Recurse -File -Force -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum\n    [pscustomobject]@{ MB = [math]::Round($size / 1MB); Path = $_.FullName }\n  } | Sort-Object MB" },
+  ]}
+/>
+
+The biggest folders are usually old projects using heavy frameworks, or monorepos. That's where to start.
+
+## Step 3: delete them
+
+<Callout type="warn" title="This is permanent">
+  These commands don't use the Trash or Recycle Bin. Stop dev servers and watchers first, and run step 1 again so you know exactly what matches.
+</Callout>
+
+<CommandTabs
+  client:visible
+  id="delete"
+  tabs={[
+    { label: "macOS / Linux", code: "find . -name node_modules -type d -prune -exec rm -rf {} +" },
+    { label: "PowerShell", code: "Get-ChildItem -Path . -Directory -Recurse -Filter node_modules -ErrorAction SilentlyContinue |\n  Where-Object { $_.FullName -notmatch 'node_modules.+node_modules' } |\n  Remove-Item -Recurse -Force", note: "Deleting thousands of small files on Windows is slow. See our Windows guide for faster options." },
+    { label: "cmd.exe", code: "FOR /d /r . %d IN (node_modules) DO @IF EXIST \"%d\" rd /s /q \"%d\"", note: "Inside a .bat file, use %%d instead of %d." },
+    { label: "npkill", code: "npx npkill", note: "Interactive: lists node_modules with sizes and lets you pick which to delete." },
+  ]}
+/>
+
+On Windows, also read [why deleting node_modules is slow on Windows](/blog/delete-node-modules-windows-fast).
+
+## What's safe to delete, and what isn't
+
+The blind `find … rm -rf` approach treats every folder named `node_modules` the same. Most are safe, but not every folder with a familiar name is generated, and not every generated folder is worth deleting.
+
+<SafeToDelete client:visible />
+
+A few things to watch for:
+
+- **Global installs.** Tools installed with `npm install -g` live in a `node_modules` folder too (for example under `/usr/local/lib` or your Node version manager's directory). Deleting it breaks those CLIs. Don't run the command from `/` or your Node install folder.
+- **Apps that ship a `node_modules`.** Some desktop apps and extensions bundle a `node_modules` folder that they need to run. Keep the search inside your projects folder.
+- **Locally patched dependencies.** If you edited a file inside `node_modules` (or use a patching tool that hasn't been committed), it's gone after deletion.
+- **Lockfiles stay.** Don't delete `package-lock.json`, `pnpm-lock.yaml` or `yarn.lock`. They're tiny and they're what makes the reinstall reproducible.
+
+## Doing it with a review step
+
+This is the workflow [Gigaflush](/) is built around. It looks for `node_modules` **only when there's a `package.json` next to it**, lists each one with its size, preselects nothing, and shows the full paths plus how to rebuild before anything is removed. It also covers Rust `target`, Flutter `build` and `.dart_tool`, Python tool caches, Swift `.build`, and Gradle and Maven output, so one scan finds everything.
+
+## Getting a project back
+
+When you return to a project, reinstall from the lockfile:
+
+```bash
+npm ci        # npm, exact versions from package-lock.json
+pnpm install  # pnpm
+yarn install  # Yarn
+```
+
+That's it: the folder you deleted was always a cache of what those commands produce.

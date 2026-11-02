@@ -1,19 +1,24 @@
 {
-  "name": "nodeminus",
+  "name": "gigaflush",
   "version": "0.1.1",
-  "description": "System tray utility to scan and purge node_modules directories",
+  "description": "System tray utility to review and remove generated project files",
   "private": true,
   "scripts": {
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
-    "site:deploy": "wrangler deploy -c site/wrangler.jsonc"
+    "test:ui": "node tests/ui-smoke.cjs",
+    "site:dev": "npm --prefix site run dev",
+    "site:build": "npm --prefix site run build",
+    "site:deploy": "npm --prefix site run build && wrangler deploy -c site/wrangler.jsonc"
   },
   "dependencies": {
     "@tauri-apps/api": "^2"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",
+    "playwright": "^1.64.1",
     "wrangler": "^4"
-  }
+  },
+  "license": "GPL-3.0-or-later"
 }

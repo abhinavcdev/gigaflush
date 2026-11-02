@@ -1,10 +1,27 @@
-use crate::scanner;
+use crate::{ports, scanner};
 use serde::Serialize;
 use std::convert::TryInto;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_dialog::DialogExt;
+
+static FILE_OPERATION_ACTIVE: AtomicBool = AtomicBool::new(false);
+
+struct OperationGuard;
+impl OperationGuard {
+    fn acquire() -> Result<Self, String> {
+        FILE_OPERATION_ACTIVE
+            .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+            .map(|_| Self)
+            .map_err(|_| "A scan or cleanup is already running".to_string())
+    }
+}
+impl Drop for OperationGuard {
+    fn drop(&mut self) {
+        FILE_OPERATION_ACTIVE.store(false, Ordering::SeqCst);
+    }
+}
 
 static FOLDER_PICKER_OPEN: AtomicBool = AtomicBool::new(false);
 
@@ -38,12 +55,6 @@ pub struct BulkDeleteResult {
     pub attempts: Vec<DeleteAttempt>,
 }
 
-/// Only directories literally named `node_modules` may ever be deleted,
-/// no matter what the frontend sends.
-fn is_node_modules_dir(path: &Path) -> bool {
-    path.file_name().is_some_and(|name| name == "node_modules")
-}
-
 pub fn delete_paths_with_progress<F>(paths: &[String], mut on_progress: F) -> BulkDeleteResult
 where
     F: FnMut(PurgeProgress),
@@ -56,8 +67,7 @@ where
         let index = offset + 1;
         let p = Path::new(path);
 
-        if !is_node_modules_dir(p) {
-            let error = "Refused: not a node_modules directory".to_string();
+        if let Err(error) = scanner::validate_cleanup_path(p) {
             on_progress(PurgeProgress {
                 index,
                 total,
@@ -87,7 +97,9 @@ where
             error: None,
         });
 
-        match std::fs::remove_dir_all(p) {
+        match scanner::validate_cleanup_path(p)
+            .and_then(|()| std::fs::remove_dir_all(p).map_err(|e| e.to_string()))
+        {
             Ok(_) => {
                 freed_bytes += size_bytes;
                 on_progress(PurgeProgress {
@@ -135,24 +147,42 @@ where
 /// and `scan-complete` events rather than returned directly.
 /// Returns immediately — the scan runs on a detached background thread.
 #[tauri::command]
-pub async fn start_scan(app: AppHandle, path: String) -> Result<(), String> {
-    let root = expand_home_path(&path);
+pub async fn start_scan(
+    app: AppHandle,
+    path: String,
+    ecosystems: Option<Vec<String>>,
+) -> Result<(), String> {
+    let root = expand_home_path(&path)
+        .canonicalize()
+        .map_err(|e| e.to_string())?;
     if !root.is_dir() {
         return Err(format!("Folder not found: {}", root.display()));
     }
+    let guard = OperationGuard::acquire()?;
     std::thread::spawn(move || {
-        scanner::scan_directory(&app, &root.to_string_lossy());
+        let _guard = guard;
+        scanner::scan_directory(
+            &app,
+            &root.to_string_lossy(),
+            &ecosystems.unwrap_or_default(),
+        );
     });
     Ok(())
 }
 
-/// Delete multiple `node_modules` directories, returning total freed bytes.
+/// Delete multiple recognized generated directories, returning total freed bytes.
 /// Individual failures are logged but do not stop the remaining deletions.
 #[tauri::command]
 pub async fn delete_all(app: AppHandle, paths: Vec<String>) -> Result<u64, String> {
-    let result = delete_paths_with_progress(&paths, |progress| {
-        app.emit("purge-progress", progress).ok();
-    });
+    let guard = OperationGuard::acquire()?;
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        let _guard = guard;
+        delete_paths_with_progress(&paths, |progress| {
+            app.emit("purge-progress", progress).ok();
+        })
+    })
+    .await
+    .map_err(|e| e.to_string())?;
 
     Ok(result.freed_bytes)
 }
@@ -229,6 +259,24 @@ pub async fn pick_folder(
         .transpose()
 }
 
+/// List local dev servers that look abandoned (see `ports` for the rules).
+#[tauri::command]
+pub async fn find_idle_servers() -> Result<ports::IdleScan, String> {
+    tauri::async_runtime::spawn_blocking(ports::find_idle_servers)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Gracefully stop servers previously returned by `find_idle_servers`.
+#[tauri::command]
+pub async fn stop_idle_servers(
+    targets: Vec<ports::StopTarget>,
+) -> Result<Vec<ports::StopResult>, String> {
+    tauri::async_runtime::spawn_blocking(move || ports::stop_idle_servers(&targets))
+        .await
+        .map_err(|e| e.to_string())
+}
+
 pub fn is_folder_picker_open() -> bool {
     FOLDER_PICKER_OPEN.load(Ordering::SeqCst)
 }
@@ -253,12 +301,95 @@ mod tests {
     use std::fs;
 
     #[test]
+    fn revalidates_manifest_after_size_calculation() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().canonicalize().unwrap();
+        fs::write(root.join("pubspec.yaml"), "name: app").unwrap();
+        fs::create_dir_all(root.join("build")).unwrap();
+        fs::write(root.join("build/keep"), "data").unwrap();
+        let result = delete_paths_with_progress(
+            &[root.join("build").to_string_lossy().into_owned()],
+            |event| {
+                if event.status == "deleting" {
+                    fs::remove_file(root.join("pubspec.yaml")).unwrap();
+                }
+            },
+        );
+        assert_eq!(result.freed_bytes, 0);
+        assert!(root.join("build/keep").exists());
+    }
+
+    #[test]
+    fn deletes_flutter_output_but_preserves_source_and_lockfile() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().canonicalize().unwrap();
+        fs::write(root.join("pubspec.yaml"), "name: app").unwrap();
+        fs::write(root.join("pubspec.lock"), "locked").unwrap();
+        fs::create_dir_all(root.join("lib")).unwrap();
+        fs::write(root.join("lib/main.dart"), "source").unwrap();
+        fs::create_dir_all(root.join("build")).unwrap();
+        fs::write(root.join("build/output"), b"123").unwrap();
+        let result = delete_paths_with_progress(
+            &[root.join("build").to_string_lossy().into_owned()],
+            |_| {},
+        );
+        assert_eq!(result.freed_bytes, 3);
+        assert!(root.join("lib/main.dart").exists());
+        assert!(root.join("pubspec.lock").exists());
+    }
+
+    #[test]
+    fn refuses_cleanup_when_manifest_has_disappeared() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().canonicalize().unwrap();
+        fs::write(root.join("Cargo.toml"), "").unwrap();
+        fs::create_dir_all(root.join("target")).unwrap();
+        fs::write(root.join("target/keep"), "data").unwrap();
+        assert_eq!(scanner::scan_projects(&root).total_count, 1);
+        fs::remove_file(root.join("Cargo.toml")).unwrap();
+        let result = delete_paths_with_progress(
+            &[root.join("target").to_string_lossy().into_owned()],
+            |_| {},
+        );
+        assert_eq!(result.freed_bytes, 0);
+        assert!(root.join("target/keep").exists());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn refuses_symlink_target_and_symlink_ancestor() {
+        use std::os::unix::fs::symlink;
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().canonicalize().unwrap();
+        fs::create_dir_all(root.join("real/node_modules")).unwrap();
+        fs::write(root.join("real/package.json"), "{}").unwrap();
+        fs::write(root.join("real/node_modules/keep"), "data").unwrap();
+        symlink(root.join("real"), root.join("alias")).unwrap();
+        symlink(root.join("real/node_modules"), root.join("node_modules")).unwrap();
+        for path in [root.join("alias/node_modules"), root.join("node_modules")] {
+            let result = delete_paths_with_progress(&[path.to_string_lossy().into_owned()], |_| {});
+            assert!(matches!(result.attempts[0].status, DeleteStatus::Failed(_)));
+        }
+        assert!(root.join("real/node_modules/keep").exists());
+    }
+
+    #[test]
     fn delete_paths_reports_progress_and_freed_bytes_per_path() {
         let temp = tempfile::tempdir().unwrap();
-        let first = temp.path().join("first/node_modules");
-        let second = temp.path().join("second/node_modules");
+        let first = temp
+            .path()
+            .canonicalize()
+            .unwrap()
+            .join("first/node_modules");
+        let second = temp
+            .path()
+            .canonicalize()
+            .unwrap()
+            .join("second/node_modules");
         fs::create_dir_all(&first).unwrap();
         fs::create_dir_all(&second).unwrap();
+        fs::write(first.parent().unwrap().join("package.json"), "{}").unwrap();
+        fs::write(second.parent().unwrap().join("package.json"), "{}").unwrap();
         fs::write(first.join("a.bin"), vec![0; 7]).unwrap();
         fs::write(second.join("b.bin"), vec![0; 11]).unwrap();
 
@@ -286,15 +417,15 @@ mod tests {
     #[test]
     fn delete_paths_refuses_non_node_modules_paths() {
         let temp = tempfile::tempdir().unwrap();
-        let victim = temp.path().join("important-data");
+        let victim = temp.path().canonicalize().unwrap().join("important-data");
         fs::create_dir_all(&victim).unwrap();
         fs::write(victim.join("keep.txt"), b"data").unwrap();
 
         let mut progress = Vec::new();
-        let result = delete_paths_with_progress(
-            &[victim.to_string_lossy().into_owned()],
-            |event| progress.push(event),
-        );
+        let result =
+            delete_paths_with_progress(&[victim.to_string_lossy().into_owned()], |event| {
+                progress.push(event)
+            });
 
         assert_eq!(result.freed_bytes, 0);
         assert!(matches!(result.attempts[0].status, DeleteStatus::Failed(_)));
@@ -306,9 +437,18 @@ mod tests {
     #[test]
     fn delete_paths_continues_after_failures() {
         let temp = tempfile::tempdir().unwrap();
-        let missing = temp.path().join("missing/node_modules");
-        let existing = temp.path().join("existing/node_modules");
+        let missing = temp
+            .path()
+            .canonicalize()
+            .unwrap()
+            .join("missing/node_modules");
+        let existing = temp
+            .path()
+            .canonicalize()
+            .unwrap()
+            .join("existing/node_modules");
         fs::create_dir_all(&existing).unwrap();
+        fs::write(existing.parent().unwrap().join("package.json"), "{}").unwrap();
         fs::write(existing.join("pkg.bin"), vec![0; 5]).unwrap();
 
         let paths = vec![
@@ -322,8 +462,8 @@ mod tests {
         assert_eq!(result.freed_bytes, 5);
         assert!(matches!(result.attempts[0].status, DeleteStatus::Failed(_)));
         assert!(matches!(result.attempts[1].status, DeleteStatus::Deleted));
-        assert_eq!(progress[1].status, "failed");
-        assert_eq!(progress[3].status, "deleted");
+        assert_eq!(progress[0].status, "failed");
+        assert_eq!(progress[2].status, "deleted");
         assert!(!existing.exists());
     }
 }

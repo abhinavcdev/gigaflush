@@ -1,0 +1,114 @@
+/* Anatomy figures in the site's themes. The kit's own token blocks are
+   replaced by these so figures follow the site's system / light / dark
+   setting; everything else comes from kit/iso-parts.css unchanged. */
+@import "./kit/iso-parts.css";
+
+.iso {
+  --anatomy-page: var(--page);
+  --anatomy-card: #fdfcf9;
+  --anatomy-text: #57585a;
+  --anatomy-strong: #1d1e1c;
+  --anatomy-muted: #8b8c87;
+  --anatomy-paper: #fdfcf9;
+  --anatomy-face: #ffffff;
+  --anatomy-top: #ffffff;
+  --anatomy-shade-0: #dcdbd5;
+  --anatomy-shade-1: #e5e4de;
+  --anatomy-shade-2: #edece7;
+  --anatomy-shade-3: #f4f3ee;
+  --anatomy-lit-top: #ffffff;
+  --anatomy-lit-shade: #efeee9;
+  --anatomy-hi: #26272a;
+  --anatomy-mid: #8a8b86;
+  --anatomy-lo: #b5b6b0;
+  --anatomy-faint: #d5d5cf;
+  --anatomy-lit: #000000;
+  --anatomy-halo: #8a897f;
+  --anatomy-halo-opacity: 0.3;
+  --anatomy-dot: #3a3a3e;
+  --anatomy-red: #e5484d;
+  --anatomy-green: #30a46c;
+  --anatomy-blue: #3e63dd;
+  --anatomy-weight: 0.6px;
+  --anatomy-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --anatomy-mono: var(--mono);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .iso {
+    --anatomy-card: #1c1e1c;
+    --anatomy-text: #a8ada4;
+    --anatomy-strong: #ecebe7;
+    --anatomy-muted: #737870;
+    --anatomy-paper: #1c1e1c;
+    --anatomy-face: #252825;
+    --anatomy-top: #262926;
+    --anatomy-shade-0: #151715;
+    --anatomy-shade-1: #181a18;
+    --anatomy-shade-2: #1b1d1b;
+    --anatomy-shade-3: #1f211f;
+    --anatomy-lit-top: #313531;
+    --anatomy-lit-shade: #282b28;
+    --anatomy-hi: #d8d9d3;
+    --anatomy-mid: #70756d;
+    --anatomy-lo: #454a43;
+    --anatomy-faint: #30342f;
+    --anatomy-lit: #ffffff;
+    --anatomy-halo: #050605;
+    --anatomy-halo-opacity: 0.9;
+    --anatomy-dot: #e6e6e1;
+    --anatomy-red: #ff6b6b;
+    --anatomy-green: #6be0a0;
+    --anatomy-blue: #6b9bff;
+  }
+}
+:root[data-theme="dark"] .iso {
+  --anatomy-card: #1c1e1c;
+  --anatomy-text: #a8ada4;
+  --anatomy-strong: #ecebe7;
+  --anatomy-muted: #737870;
+  --anatomy-paper: #1c1e1c;
+  --anatomy-face: #252825;
+  --anatomy-top: #262926;
+  --anatomy-shade-0: #151715;
+  --anatomy-shade-1: #181a18;
+  --anatomy-shade-2: #1b1d1b;
+  --anatomy-shade-3: #1f211f;
+  --anatomy-lit-top: #313531;
+  --anatomy-lit-shade: #282b28;
+  --anatomy-hi: #d8d9d3;
+  --anatomy-mid: #70756d;
+  --anatomy-lo: #454a43;
+  --anatomy-faint: #30342f;
+  --anatomy-lit: #ffffff;
+  --anatomy-halo: #050605;
+  --anatomy-halo-opacity: 0.9;
+  --anatomy-dot: #e6e6e1;
+  --anatomy-red: #ff6b6b;
+  --anatomy-green: #6be0a0;
+  --anatomy-blue: #6b9bff;
+}
+
+/* The plate follows the site's surfaces and 12px corners. */
+.iso .iso-plate {
+  border-radius: var(--radius);
+  box-shadow: 0 0 0 1px var(--line);
+}
+.iso .iso-figure {
+  margin: 0;
+}
+.iso .iso-legend {
+  font-size: 14px;
+}
+.iso-stage {
+  outline: none;
+  touch-action: pan-y;
+}
+.iso-stage:focus-visible {
+  outline: 1px solid var(--anatomy-muted);
+  outline-offset: 6px;
+}
+
+/* The site's global svg stroke would outline engraved text; keep glyphs solid. */
+.iso-face-text {
+  stroke: none;
+}

@@ -1,0 +1,767 @@
+---
+import Icon from "./Icon.astro";
+const steps = [
+  { n: "01", title: "Scan", body: "Point Gigaflush at a workspace or your whole home folder. A parallel Rust walker streams results as it finds them, largest first." },
+  { n: "02", title: "Review", body: "Nothing is preselected. Filter by project, path, or type, and see which toolchain owns each folder and how to get it back." },
+  { n: "03", title: "Reclaim", body: "Confirm the exact paths, then watch each folder go with live progress. The space is back before your coffee is." },
+];
+const tree = [
+  ["~/Developer/atlas-mobile", ""],
+  ["  build", "3.2 GB"],
+  ["~/Developer/search-index", ""],
+  ["  target", "2.4 GB"],
+  ["~/Developer/studio-web", ""],
+  ["  node_modules", "1.2 GB"],
+  ["~/Developer/menu-bar", ""],
+  ["  .build", "655 MB"],
+];
+// What the cleanup in step 3 reclaimed, by folder type. Bar widths, printed
+// shares, tooltips, the screen-reader table and the count-up all read this.
+const reclaimed = [
+  { folder: "node_modules", kind: "Node.js", gb: 2.9 },
+  { folder: "target", kind: "Rust", gb: 2.4 },
+  { folder: "build", kind: "Flutter", gb: 1.1 },
+  { folder: ".gradle", kind: "Gradle", gb: 0.4 },
+];
+const reclaimedTotal = reclaimed.reduce((n, r) => n + r.gb, 0);
+const shareOf = (gb: number) => Math.round((gb / reclaimedTotal) * 100);
+const rows = [
+  ["atlas-mobile", "Flutter · build", "3.2 GB"],
+  ["search-index", "Rust · target", "2.4 GB"],
+  ["studio-web", "Node.js · node_modules", "1.2 GB"],
+  ["billing-api", "Maven · target", "418 MB"],
+];
+---
+
+<section class="section" id="how">
+  <div class="layout">
+    <aside class="rail">
+      <div class="section-head" data-reveal>
+        <h2>Scan. Review. Reclaim. <span class="dim">Back to work in a minute.</span></h2>
+      </div>
+      <ol class="step-list" data-steps>
+        {
+          steps.map((s, i) => (
+            <li class:list={{ "is-active": i === 0 }} data-step={i}>
+              <span class="n">{s.n}</span>
+              <div>
+                <b>{s.title}</b>
+                <p>{s.body}</p>
+              </div>
+            </li>
+          ))
+        }
+      </ol>
+    </aside>
+
+    <div class="cards">
+      <article class="card stepcard" data-card="0">
+        <header class="mobile-head"><span class="n">01</span><b>Scan</b><p>{steps[0].body}</p></header>
+        <div class="viz viz-scan">
+          <div class="scanline"></div>
+          {
+            tree.map(([path, size], i) => (
+              <div class:list={["tree-row", { hit: size }]} style={`--i:${i}`}>
+                <code>{path}</code>
+                {size && <b>{size}</b>}
+              </div>
+            ))
+          }
+          <div class="scan-foot"><span class="spin"></span><code>4 found · 7.5 GB reclaimable · 2s</code></div>
+        </div>
+      </article>
+
+      <article class="card stepcard" data-card="1">
+        <header class="mobile-head"><span class="n">02</span><b>Review</b><p>{steps[1].body}</p></header>
+        <div class="viz viz-review">
+          <div class="search"><Icon name="ph:magnifying-glass" size={14} /><span class="typed">Filter by project, path, or type</span><kbd>⌘ F</kbd></div>
+          {
+            rows.map(([name, kind, size], i) => (
+              <div class="rv-row" style={`--i:${i}`}>
+                <i class="box"><svg width="9" height="9" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg></i>
+                <span><b>{name}</b><small>{kind}</small></span>
+                <em>{size}</em>
+              </div>
+            ))
+          }
+          <div class="rv-foot"><span><b data-sel>0 selected</b><small data-sel-size>Choose folders to review</small></span><span class="rv-btn">Review cleanup</span></div>
+        </div>
+      </article>
+
+      <article class="card stepcard" data-card="2">
+        <header class="mobile-head"><span class="n">03</span><b>Reclaim</b><p>{steps[2].body}</p></header>
+        <div class="viz viz-reclaim" data-reclaim>
+          <p class="rc-label">Space reclaimed</p>
+          <p class="rc-total"><b data-count>0.0</b> GB</p>
+          <div
+            class="seg"
+            role="img"
+            aria-label={`${reclaimedTotal.toFixed(1)} GB reclaimed: ${reclaimed.map((r) => `${r.folder} ${r.gb} GB (${shareOf(r.gb)}%)`).join(", ")}`}
+          >
+            {
+              reclaimed.map((r, i) => (
+                <span
+                  class="seg-part"
+                  style={`--w:${r.gb};--c:var(--series-${i + 1})`}
+                  tabindex="0"
+                  data-tip={`${r.kind} ${r.folder} · ${r.gb.toFixed(1)} GB · ${shareOf(r.gb)}%`}
+                  data-i={i}
+                >
+                  <span class="seg-fill" />
+                  {shareOf(r.gb) >= 12 && <em>{shareOf(r.gb)}%</em>}
+                </span>
+              ))
+            }
+            <span class="seg-tip" role="tooltip" data-tipbox hidden></span>
+          </div>
+          <ul class="legend" aria-hidden="true">
+            {reclaimed.map((r, i) => <li style={`--c:var(--series-${i + 1})`}><i /> <code>{r.folder}</code></li>)}
+          </ul>
+          <table class="sr-only">
+            <caption>Space reclaimed by folder type</caption>
+            <thead><tr><th scope="col">Folder</th><th scope="col">Size</th><th scope="col">Share</th></tr></thead>
+            <tbody>{reclaimed.map((r) => <tr><td>{r.folder}</td><td>{r.gb.toFixed(1)} GB</td><td>{shareOf(r.gb)}%</td></tr>)}</tbody>
+          </table>
+          <p class="done"><i>✓</i> Cleanup complete · {reclaimed.length} of {reclaimed.length} folders</p>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<script>
+  const cards = [...document.querySelectorAll<HTMLElement>("[data-card]")];
+  const steps = [...document.querySelectorAll<HTMLElement>("[data-step]")];
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function activate(i: number) {
+    steps.forEach((s, j) => s.classList.toggle("is-active", j === i));
+    const card = cards[i];
+    if (card.classList.contains("is-active")) return;
+    card.classList.add("is-active");
+    if (i === 1) review(card);
+    if (i === 2) reclaim(card);
+  }
+
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) if (e.isIntersecting) activate(Number((e.target as HTMLElement).dataset.card));
+    },
+    { rootMargin: "-45% 0px -45% 0px" },
+  );
+  cards.forEach((c) => io.observe(c));
+
+  function review(card: HTMLElement) {
+    // What the cleanup in step 3 reclaimed, by folder type. Bar widths, printed
+// shares, tooltips, the screen-reader table and the count-up all read this.
+const reclaimed = [
+  { folder: "node_modules", kind: "Node.js", gb: 2.9 },
+  { folder: "target", kind: "Rust", gb: 2.4 },
+  { folder: "build", kind: "Flutter", gb: 1.1 },
+  { folder: ".gradle", kind: "Gradle", gb: 0.4 },
+];
+const reclaimedTotal = reclaimed.reduce((n, r) => n + r.gb, 0);
+const shareOf = (gb: number) => Math.round((gb / reclaimedTotal) * 100);
+const rows = [...card.querySelectorAll<HTMLElement>(".rv-row")];
+    const sel = card.querySelector("[data-sel]")!;
+    const size = card.querySelector("[data-sel-size]")!;
+    const sizes = [3.2, 2.4, 1.2, 0.4];
+    const pick = [0, 1, 2];
+    const update = () => {
+      const on = rows.map((r, i) => (r.classList.contains("on") ? sizes[i] : 0));
+      const n = on.filter(Boolean).length;
+      sel.textContent = `${n} selected`;
+      size.textContent = n ? `${on.reduce((a, b) => a + b, 0).toFixed(1)} GB ready to reclaim` : "Choose folders to review";
+      card.querySelector(".rv-btn")!.classList.toggle("ready", n > 0);
+    };
+    rows.forEach((r) =>
+      r.addEventListener("click", () => {
+        r.classList.toggle("on");
+        update();
+      }),
+    );
+    pick.forEach((i, n) =>
+      setTimeout(() => {
+        rows[i].classList.add("on");
+        update();
+      }, reduce ? 0 : 500 + n * 450),
+    );
+  }
+
+  // The total counts up while each block fills in turn, at the rate the
+  // folders would be cleared: a block's fill time is its share of the total.
+  function reclaim(card: HTMLElement) {
+    const out = card.querySelector("[data-count]")!;
+    const parts = [...card.querySelectorAll<HTMLElement>(".seg-part")];
+    const sizes = parts.map((p) => Number(p.style.getPropertyValue("--w")));
+    const total = sizes.reduce((a, b) => a + b, 0);
+    const finish = () => {
+      out.textContent = total.toFixed(1);
+      parts.forEach((p) => p.style.setProperty("--p", "1"));
+      card.classList.add("is-done");
+    };
+    if (reduce) return finish();
+    const t0 = performance.now();
+    const step = (now: number) => {
+      const t = Math.min(1, (now - t0) / 2200);
+      const done = total * (1 - (1 - t) ** 2.4);
+      out.textContent = done.toFixed(1);
+      let left = done;
+      parts.forEach((p, i) => {
+        const fill = Math.max(0, Math.min(1, left / sizes[i]));
+        left -= sizes[i];
+        p.style.setProperty("--p", fill.toFixed(3));
+        p.classList.toggle("is-full", fill >= 1);
+      });
+      if (t < 1) requestAnimationFrame(step);
+      else finish();
+    };
+    requestAnimationFrame(step);
+  }
+
+  // Hover and keyboard focus name each block.
+  const seg = document.querySelector<HTMLElement>("[data-reclaim] .seg");
+  const tipbox = seg?.querySelector<HTMLElement>("[data-tipbox]");
+  seg?.querySelectorAll<HTMLElement>(".seg-part").forEach((part) => {
+    const show = () => {
+      tipbox!.textContent = part.dataset.tip!;
+      tipbox!.hidden = false;
+      const r = part.getBoundingClientRect();
+      const host = seg.getBoundingClientRect();
+      tipbox!.style.left = `${Math.min(Math.max(r.left - host.left + r.width / 2, 70), host.width - 70)}px`;
+    };
+    const hide = () => (tipbox!.hidden = true);
+    part.addEventListener("pointerenter", show);
+    part.addEventListener("focus", show);
+    part.addEventListener("pointerleave", hide);
+    part.addEventListener("blur", hide);
+  });
+</script>
+
+<style>
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: 64px;
+    align-items: start;
+  }
+  .rail {
+    position: sticky;
+    top: 110px;
+  }
+  .section-head {
+    margin-bottom: 40px;
+  }
+  .step-list {
+    list-style: none;
+    display: grid;
+    gap: 6px;
+    border-left: 1px solid var(--line);
+  }
+  .step-list li {
+    position: relative;
+    display: flex;
+    gap: 16px;
+    padding: 14px 0 14px 22px;
+    opacity: 1;
+    transition: opacity 500ms var(--ease);
+  }
+  .step-list li::before {
+    content: "";
+    position: absolute;
+    left: -1px;
+    top: 14px;
+    bottom: 14px;
+    width: 2px;
+    border-radius: 2px;
+    background: var(--accent);
+    transform: scaleY(0);
+    transition: transform 600ms var(--ease);
+  }
+  .step-list li.is-active {
+    opacity: 1;
+  }
+  .step-list li.is-active::before {
+    transform: scaleY(1);
+  }
+  .n {
+    font-size: 14px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--faint);
+    padding-top: 5px;
+  }
+  .is-active .n {
+    color: var(--accent);
+  }
+  .step-list b {
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: -0.022em;
+  }
+  .step-list p {
+    color: var(--muted);
+    margin-top: 6px;
+    max-width: 28em;
+    font-size: 17px;
+    line-height: 1.47;
+  }
+  .cards {
+    display: grid;
+    gap: 24px;
+  }
+  .stepcard {
+    min-height: 390px;
+    display: grid;
+    place-items: center;
+    padding: 48px;
+    background: var(--surface);
+  }
+  .mobile-head {
+    display: none;
+  }
+  .viz {
+    width: 100%;
+    max-width: 420px;
+    font-size: 13px;
+  }
+  .viz-review,
+  .viz-reclaim {
+    padding: 20px;
+    border-radius: var(--radius-sm);
+    background: var(--content);
+    box-shadow: var(--panel-shadow);
+  }
+
+  /* Scan */
+  .viz-scan {
+    position: relative;
+    display: grid;
+    gap: 2px;
+    padding: 18px;
+    border-radius: var(--radius-sm);
+    background: var(--content);
+    box-shadow: var(--panel-shadow);
+    border: 1px solid var(--line);
+    overflow: hidden;
+  }
+  .tree-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 8px;
+    border-radius: 7px;
+    color: var(--faint);
+    white-space: pre;
+  }
+  .tree-row code {
+    font-size: 12px;
+  }
+  .tree-row b {
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    opacity: 0;
+  }
+  .is-active .tree-row {
+    animation: lit 600ms var(--ease) both;
+    animation-delay: calc(var(--i) * 220ms);
+  }
+  .is-active .tree-row.hit {
+    animation-name: hit;
+  }
+  .is-active .tree-row.hit b {
+    animation: pop-in 500ms var(--spring) both;
+    animation-delay: calc(var(--i) * 220ms + 150ms);
+  }
+  .scanline {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 40px;
+    background: linear-gradient(transparent, var(--sweep), transparent);
+    opacity: 0;
+  }
+  .is-active .scanline {
+    animation: scan 1.9s var(--ease) 1 both;
+  }
+  .scan-foot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 10px 8px 0;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+  }
+  .scan-foot code {
+    font-size: 11.5px;
+  }
+  .spin {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    border: 1.6px solid var(--accent);
+    border-right-color: transparent;
+    animation: spin 800ms linear infinite;
+  }
+
+  /* Review */
+  .viz-review {
+    display: grid;
+    gap: 6px;
+  }
+  .search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--faint);
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+  .search kbd {
+    margin-left: auto;
+    font-size: 11px;
+  }
+  .rv-row {
+    display: grid;
+    grid-template-columns: 16px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--content);
+    cursor: pointer;
+    transition:
+      background-color 250ms,
+      border-color 250ms,
+      transform 300ms var(--ease);
+  }
+  .rv-row:hover {
+    transform: translateX(3px);
+  }
+  .rv-row.on {
+    background: var(--selected);
+    border-color: transparent;
+  }
+  .box {
+    width: 16px;
+    height: 16px;
+    border-radius: 5px;
+    border: 1.4px solid var(--line-strong);
+    display: grid;
+    place-items: center;
+    color: #fff;
+    transition: all 220ms var(--ease);
+  }
+  .box svg {
+    stroke-width: 3.2;
+    transform: scale(0);
+    transition: transform 300ms var(--spring);
+  }
+  .on .box {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .on .box svg {
+    transform: none;
+  }
+  .rv-row b {
+    display: block;
+    font-weight: 600;
+  }
+  .rv-row small {
+    display: block;
+    color: var(--muted);
+    font-size: 11.5px;
+  }
+  .rv-row em {
+    font-style: normal;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .rv-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+    padding: 12px 4px 0;
+  }
+  .rv-foot b {
+    display: block;
+    font-weight: 600;
+  }
+  .rv-foot small {
+    color: var(--muted);
+    font-size: 11.5px;
+  }
+  .rv-btn {
+    padding: 8px 12px;
+    border-radius: 9px;
+    background: var(--control);
+    color: var(--faint);
+    font-weight: 500;
+    font-size: 12px;
+    transition: all 300ms var(--ease);
+  }
+  .rv-btn.ready {
+    background: var(--text);
+    color: var(--page);
+  }
+
+  /* Reclaim: hero total over a tall segmented bar (validated categorical
+     slots 1-4, separate light and dark steps). */
+  .viz-reclaim {
+    --series-1: #2a78d6;
+    --series-2: #eb6834;
+    --series-3: #1baf7a;
+    --series-4: #eda100;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 32px 28px 26px;
+  }
+  :global(:root[data-theme="dark"]) .viz-reclaim {
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+  }
+  @media (prefers-color-scheme: dark) {
+    :global(:root:where(:not([data-theme="light"]))) .viz-reclaim {
+      --series-1: #3987e5;
+      --series-2: #d95926;
+      --series-3: #199e70;
+      --series-4: #c98500;
+    }
+  }
+  .rc-label {
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .rc-total {
+    margin-top: 4px;
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+  .rc-total b {
+    font-family: var(--display);
+    font-size: 64px;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--text);
+  }
+  .seg {
+    position: relative;
+    display: flex;
+    gap: 2px;
+    width: 100%;
+    height: 28px;
+    margin-top: 26px;
+  }
+  .seg-part {
+    --p: 0;
+    position: relative;
+    flex: var(--w) 1 0;
+    min-width: 0;
+    border-radius: 4px;
+    background: var(--control);
+    overflow: visible;
+    cursor: default;
+    outline-offset: 2px;
+  }
+  .seg-fill {
+    position: absolute;
+    inset: 0;
+    border-radius: 4px;
+    background: var(--c);
+    transform: scaleX(var(--p));
+    transform-origin: left;
+  }
+  .seg-part em {
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    translate: 0 -50%;
+    font-style: normal;
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: #fff;
+    opacity: 0;
+    transition: opacity 300ms;
+  }
+  .seg-part[data-i="1"] em,
+  .seg-part[data-i="2"] em,
+  .seg-part[data-i="3"] em {
+    color: #111;
+  }
+  .seg-part.is-full em,
+  .is-done .seg-part em {
+    opacity: 1;
+  }
+  .seg-tip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    translate: -50% 0;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: var(--text);
+    color: var(--page);
+    font-size: 12.5px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .legend {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 18px;
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .legend li {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .legend i {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    background: var(--c);
+  }
+  .legend code {
+    font-size: 12.5px;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .done {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 22px;
+    font-size: 14px;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateY(6px);
+    transition:
+      opacity 500ms var(--ease),
+      transform 500ms var(--ease);
+  }
+  .is-done .done {
+    opacity: 1;
+    transform: none;
+  }
+  .done i {
+    width: 18px;
+    height: 18px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--success);
+    color: #fff;
+    font-style: normal;
+    font-size: 11px;
+  }
+
+  @media (max-width: 900px) {
+    .layout {
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+    .rail {
+      position: static;
+    }
+    .step-list {
+      display: none;
+    }
+    .stepcard {
+      min-height: 0;
+      padding: 28px 20px;
+      gap: 28px;
+    }
+    .mobile-head {
+      display: block;
+      width: 100%;
+    }
+    .mobile-head b {
+      display: block;
+      font-size: 21px;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+    .mobile-head p {
+      color: var(--muted);
+      margin-top: 6px;
+      font-size: 14.5px;
+    }
+  }
+
+  @keyframes lit {
+    0% {
+      color: var(--faint);
+    }
+    40% {
+      color: var(--text);
+      background: var(--sweep);
+    }
+    100% {
+      color: var(--muted);
+    }
+  }
+  @keyframes hit {
+    0% {
+      color: var(--faint);
+    }
+    40%,
+    100% {
+      color: var(--text);
+      background: var(--selected);
+    }
+  }
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes scan {
+    0% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    95% {
+      opacity: 1;
+      transform: translateY(330px);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(330px);
+    }
+  }
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+</style>

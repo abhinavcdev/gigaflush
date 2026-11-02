@@ -1,0 +1,821 @@
+---
+import Mark from "./Mark.astro";
+---
+
+<div class="demo" id="demo" aria-label="Animated preview of the Gigaflush panel" role="img">
+  <div class="panel">
+    <header class="titlebar">
+      <div class="brand">
+        <Mark size={26} />
+        <div>
+          <b>Gigaflush</b>
+          <small>Workspace cleanup</small>
+        </div>
+      </div>
+      <div class="chips" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+    </header>
+
+    <section class="screen">
+      <div class="readout-row">
+        <div>
+          <div class="readout" data-readout>0 B</div>
+          <small class="muted">Estimated reclaimable</small>
+        </div>
+        <div class="stats">
+          <div><b data-count>0</b><small>folders</small></div>
+          <div><b data-selected>0</b><small>selected</small></div>
+        </div>
+      </div>
+      <div class="path">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M3 7.5a2 2 0 0 1 2-2h4.4l2 2H19a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9Z"></path></svg>
+        <span>~/Developer</span>
+      </div>
+      <div class="status" data-status>Ready to scan</div>
+      <div class="track" data-track><span></span></div>
+    </section>
+
+    <section class="keys">
+      <span class="k">Folder</span>
+      <span class="k k-primary" data-scan>
+        <i class="spinner"></i><span data-scan-label>Scan</span>
+      </span>
+      <span class="k" data-selectall>Select all</span>
+    </section>
+
+    <section class="results">
+      <div class="results-head">
+        <b>Generated files</b>
+        <small class="muted" data-subtitle>Ready to scan</small>
+      </div>
+      <div class="list" data-list>
+        <div class="empty" data-empty>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3M8.5 11h5"></path></svg>
+          <b data-empty-title>A little room to build.</b>
+          <small class="muted" data-empty-copy>Scan for dependencies, build output, and tool caches.</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="progress" data-progress hidden>
+      <div class="progress-top">
+        <span class="glyph"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>
+        <b data-progress-label>Removing generated files</b>
+        <small class="muted" data-progress-count>0/0</small>
+      </div>
+      <div class="bar"><span data-bar></span></div>
+    </section>
+
+    <footer class="foot">
+      <div>
+        <b data-foot-title>Nothing selected</b>
+        <small class="muted" data-foot-detail>Scan to find cleanup candidates.</small>
+      </div>
+      <span class="k k-primary" data-review>Review cleanup</span>
+    </footer>
+
+    <div class="sheet" data-sheet hidden>
+      <div class="sheet-card">
+        <b class="sheet-title" data-sheet-title>Remove 4 folders?</b>
+        <p class="muted">Permanently remove generated files. Reinstall or rebuild before using these projects again.</p>
+        <div class="sheet-paths" data-sheet-paths></div>
+        <div class="sheet-actions">
+          <span class="k">Cancel</span>
+          <span class="k k-danger" data-sheet-accept>Remove</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  type Item = { name: string; kind: string; folder: string; bytes: number };
+  const DATA: Item[] = [
+    { name: "atlas-mobile", kind: "Flutter / Dart", folder: "build", bytes: 3_480_000_000 },
+    { name: "search-index", kind: "Rust", folder: "target", bytes: 2_610_000_000 },
+    { name: "studio-web", kind: "Node.js", folder: "node_modules", bytes: 1_240_000_000 },
+    { name: "menu-bar", kind: "Swift", folder: ".build", bytes: 655_000_000 },
+    { name: "billing-api", kind: "Maven", folder: "target", bytes: 418_000_000 },
+    { name: "data-pipeline", kind: "Python", folder: ".mypy_cache", bytes: 96_000_000 },
+  ];
+  const DISCOVERY = [2, 0, 4, 1, 5, 3]; // scan order differs from size order
+  const SELECT = [0, 1, 2, 4]; // indices into DATA
+
+  const root = document.getElementById("demo")!;
+  const $ = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector<T>(`[data-${s}]`)!;
+  const el = {
+    readout: $("readout"), count: $("count"), selected: $("selected"), status: $("status"),
+    track: $("track"), scan: $("scan"), scanLabel: $("scan-label"), selectAll: $("selectall"),
+    subtitle: $("subtitle"), list: $("list"), empty: $("empty"), emptyTitle: $("empty-title"),
+    emptyCopy: $("empty-copy"), progress: $("progress"), progressLabel: $("progress-label"),
+    progressCount: $("progress-count"), bar: $("bar"), footTitle: $("foot-title"),
+    footDetail: $("foot-detail"), review: $("review"), sheet: $("sheet"), sheetTitle: $("sheet-title"),
+    sheetPaths: $("sheet-paths"), sheetAccept: $("sheet-accept"),
+  };
+
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let visible = true;
+  let wake: (() => void) | null = null;
+  new IntersectionObserver(([e]) => {
+    visible = e.isIntersecting;
+    if (visible && wake) (wake(), (wake = null));
+  }).observe(root);
+
+  // Waits pause while the panel is offscreen so the loop never runs unseen.
+  const wait = async (ms: number) => {
+    await new Promise((r) => setTimeout(r, ms));
+    while (!visible || document.hidden) await new Promise<void>((r) => ((wake = r), setTimeout(r, 500)));
+  };
+
+  const fmt = (b: number) => {
+    if (!b) return "0 B";
+    const u = ["B", "KB", "MB", "GB"];
+    const i = Math.min(Math.floor(Math.log(b) / Math.log(1024)), 3);
+    return i === 0 ? `${b} B` : `${(b / 1024 ** i).toFixed(1)} ${u[i]}`;
+  };
+
+  let shown = 0;
+  let frame = 0;
+  function readout(target: number) {
+    cancelAnimationFrame(frame);
+    const from = shown;
+    const t0 = performance.now();
+    const step = (now: number) => {
+      const t = Math.min(1, (now - t0) / 480);
+      shown = Math.round(from + (target - from) * (1 - (1 - t) ** 3));
+      el.readout.textContent = fmt(shown);
+      if (t < 1) frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+  }
+
+  const rows = new Map<number, HTMLElement>();
+  const selected = new Set<number>();
+  const listed = () => [...rows.keys()];
+  const total = (ids: number[]) => ids.reduce((s, i) => s + DATA[i].bytes, 0);
+
+  function rowFor(i: number) {
+    const d = DATA[i];
+    const row = document.createElement("div");
+    row.className = "row is-new";
+    row.innerHTML = `<span class="check"><svg width="9" height="9" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+      <span class="info"><b>${d.name}</b><code>~/Developer/${d.name}/${d.folder}</code><small>${d.kind} · ${d.folder}</small></span>
+      <span class="size">${fmt(d.bytes)}</span>`;
+    return row;
+  }
+
+  function placeRow(i: number, row: HTMLElement) {
+    const after = [...rows.entries()].filter(([j]) => DATA[j].bytes > DATA[i].bytes).map(([, r]) => r).pop();
+    if (after) after.after(row);
+    else el.list.prepend(row);
+  }
+
+  function footer() {
+    const ids = [...selected];
+    el.selected.textContent = String(ids.length);
+    el.footTitle.textContent = ids.length ? `${ids.length} selected` : "Nothing selected";
+    el.footDetail.textContent = ids.length
+      ? `${fmt(total(ids))} ready to reclaim`
+      : rows.size ? "Choose folders to review." : "Scan to find cleanup candidates.";
+    el.review.classList.toggle("is-off", !ids.length);
+  }
+
+  function reset() {
+    rows.forEach((r) => r.remove());
+    rows.clear();
+    selected.clear();
+    shown = 0;
+    el.readout.textContent = "0 B";
+    el.readout.classList.remove("is-reclaiming");
+    el.count.textContent = "0";
+    el.status.textContent = "Ready to scan";
+    el.status.className = "status";
+    el.subtitle.textContent = "Ready to scan";
+    el.empty.hidden = false;
+    el.empty.classList.remove("is-clean");
+    el.emptyTitle.textContent = "A little room to build.";
+    el.emptyCopy.textContent = "Scan for dependencies, build output, and tool caches.";
+    el.progress.hidden = true;
+    el.progress.classList.remove("is-complete");
+    el.track.classList.remove("on");
+    footer();
+  }
+
+  async function press(node: HTMLElement) {
+    node.classList.add("is-pressed");
+    await wait(160);
+    node.classList.remove("is-pressed");
+  }
+
+  function populateStatic() {
+    el.empty.hidden = true;
+    DATA.forEach((_, i) => {
+      const row = rowFor(i);
+      row.classList.remove("is-new");
+      rows.set(i, row);
+      el.list.append(row);
+    });
+    SELECT.forEach((i) => (selected.add(i), rows.get(i)!.classList.add("is-selected")));
+    el.readout.textContent = fmt(total(listed()));
+    el.count.textContent = String(DATA.length);
+    el.status.textContent = `Scan complete. ${DATA.length} folders · ${fmt(total(listed()))} reclaimable.`;
+    el.status.className = "status ok";
+    el.subtitle.textContent = `${DATA.length} folders · largest first`;
+    footer();
+  }
+
+  async function loop() {
+    reset();
+    await wait(1100);
+
+    // Scan: results stream in, sorted largest-first as they land.
+    await press(el.scan);
+    el.scan.classList.add("is-scanning");
+    el.scanLabel.textContent = "Scanning";
+    el.track.classList.add("on");
+    el.selectAll.classList.add("is-off");
+    el.empty.hidden = true;
+    el.status.textContent = "Indexing directories · 0s";
+    el.subtitle.textContent = "Looking for generated folders";
+    await wait(700);
+    for (const [n, i] of DISCOVERY.entries()) {
+      const row = rowFor(i);
+      placeRow(i, row);
+      rows.set(i, row);
+      readout(total(listed()));
+      el.count.textContent = String(rows.size);
+      el.status.textContent = `${rows.size} found · ${fmt(total(listed()))} reclaimable · ${n + 1}s`;
+      el.subtitle.textContent = `${rows.size} found so far`;
+      await wait(420);
+    }
+    el.scan.classList.remove("is-scanning");
+    el.scanLabel.textContent = "Scan";
+    el.track.classList.remove("on");
+    el.selectAll.classList.remove("is-off");
+    el.status.textContent = `Scan complete. ${rows.size} folders · ${fmt(total(listed()))} reclaimable.`;
+    el.status.className = "status ok";
+    el.subtitle.textContent = `${rows.size} folders · largest first`;
+    footer();
+    await wait(1000);
+
+    // Review: pick folders, nothing is preselected.
+    for (const i of SELECT) {
+      selected.add(i);
+      rows.get(i)!.classList.add("is-selected");
+      footer();
+      await wait(320);
+    }
+    await wait(700);
+    await press(el.review);
+    el.sheetTitle.textContent = `Remove ${selected.size} folders?`;
+    el.sheetPaths.innerHTML = [...selected].map((i) => `<code>~/Developer/${DATA[i].name}/${DATA[i].folder}</code>`).join("");
+    el.sheetAccept.textContent = `Remove ${fmt(total([...selected]))}`;
+    el.sheet.hidden = false;
+    await wait(2000);
+    await press(el.sheetAccept);
+    el.sheet.hidden = true;
+
+    // Clean up: sweep, confirm, collapse — the readout counts down live.
+    const queue = [...selected];
+    el.progress.hidden = false;
+    el.readout.classList.add("is-reclaiming");
+    el.review.textContent = "Cleaning up…";
+    el.review.classList.add("is-off");
+    el.status.textContent = "";
+    let freed = 0;
+    for (const [n, i] of queue.entries()) {
+      const row = rows.get(i)!;
+      el.progressLabel.textContent = "Removing generated files";
+      el.progressCount.textContent = `${n}/${queue.length}`;
+      row.classList.add("is-deleting");
+      await wait(780);
+      row.classList.replace("is-deleting", "is-deleted");
+      freed += DATA[i].bytes;
+      rows.delete(i);
+      selected.delete(i);
+      readout(total(listed()));
+      el.count.textContent = String(rows.size);
+      el.bar.style.transform = `scaleX(${(n + 1) / queue.length})`;
+      el.progressCount.textContent = `${n + 1}/${queue.length}`;
+      footer();
+      row
+        .animate([{ height: `${row.offsetHeight}px` }, { height: "0px", paddingTop: "0px", paddingBottom: "0px", opacity: 0 }], {
+          duration: 340,
+          delay: 480,
+          easing: "cubic-bezier(.16,1,.3,1)",
+          fill: "forwards",
+        })
+        .finished.then(() => row.remove());
+    }
+    await wait(500);
+    el.progress.classList.add("is-complete");
+    el.progressLabel.textContent = "Cleanup complete";
+    el.review.textContent = "Review cleanup";
+    el.status.textContent = `Removed ${fmt(freed)}.`;
+    el.status.className = "status ok";
+    el.subtitle.textContent = `${rows.size} folders · largest first`;
+    setTimeout(() => el.readout.classList.remove("is-reclaiming"), 1200);
+    await wait(3800);
+    el.bar.style.transform = "scaleX(0)";
+    loop();
+  }
+
+  if (reduce) populateStatic();
+  else loop();
+</script>
+
+<style>
+  .demo {
+    position: relative;
+    width: min(100%, 410px);
+    margin-inline: auto;
+    font-size: 12px;
+    user-select: none;
+  }
+  .demo::before {
+    content: "";
+    position: absolute;
+    inset: -12% -20%;
+    background: radial-gradient(closest-side, var(--glow), transparent);
+    z-index: -1;
+  }
+  .panel {
+    position: relative;
+    height: 620px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 16px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    box-shadow: var(--panel-shadow);
+  }
+  b {
+    font-weight: 600;
+  }
+  small {
+    display: block;
+    font-size: 10.5px;
+  }
+  .muted {
+    color: var(--muted);
+  }
+  code {
+    font-family: var(--mono);
+    font-size: 9.5px;
+  }
+  .titlebar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 18px 12px;
+  }
+  .brand {
+    display: flex;
+    gap: 9px;
+    align-items: center;
+  }
+  .brand b {
+    display: block;
+    font-size: 13px;
+    letter-spacing: -0.2px;
+  }
+  .brand small {
+    color: var(--muted);
+    margin-top: 1px;
+  }
+  .chips {
+    display: flex;
+    gap: 10px;
+  }
+  .chips span {
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    border: 1.5px solid var(--muted);
+    opacity: 0.6;
+  }
+  .chips span:last-child {
+    border-radius: 0;
+    border-width: 0 0 1.5px;
+    height: 7px;
+  }
+  .screen {
+    padding: 4px 18px 0;
+    position: relative;
+  }
+  .readout-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .readout {
+    font-size: 29px;
+    font-weight: 500;
+    letter-spacing: -1px;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    transition: color 400ms var(--ease);
+  }
+  .readout.is-reclaiming {
+    color: var(--success);
+  }
+  .readout + small {
+    margin-top: 4px;
+    font-size: 11px;
+  }
+  .stats {
+    display: flex;
+    gap: 20px;
+    text-align: right;
+  }
+  .stats b {
+    display: block;
+    font-size: 16px;
+    font-variant-numeric: tabular-nums;
+  }
+  .stats small {
+    color: var(--muted);
+    margin-top: 3px;
+  }
+  .path {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 15px;
+    padding: 9px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--content);
+    color: var(--muted);
+    font-size: 11px;
+  }
+  .status {
+    color: var(--muted);
+    font-size: 10.5px;
+    padding: 8px 0 7px;
+    min-height: 31px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .status.ok {
+    color: var(--success);
+  }
+  .track {
+    position: absolute;
+    left: 18px;
+    right: 18px;
+    bottom: 0;
+    height: 2px;
+    overflow: hidden;
+    background: var(--line);
+    opacity: 0;
+    transition: opacity 200ms;
+  }
+  .track.on {
+    opacity: 1;
+  }
+  .track span {
+    display: block;
+    width: 35%;
+    height: 100%;
+    background: var(--accent);
+    animation: track 1.5s ease-in-out infinite;
+  }
+  .keys {
+    display: grid;
+    grid-template-columns: 1fr 1.15fr 1fr;
+    gap: 7px;
+    padding: 10px 18px 14px;
+  }
+  .k {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 31px;
+    padding: 0 10px;
+    border-radius: 8px;
+    background: var(--control);
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+    transition:
+      transform 160ms var(--ease),
+      opacity 200ms,
+      background-color 200ms;
+  }
+  .k-primary {
+    background: var(--text);
+    color: var(--content);
+  }
+  .k-danger {
+    background: #bf332e;
+    color: #fff;
+  }
+  .k.is-pressed {
+    transform: scale(0.94);
+  }
+  .k.is-off {
+    opacity: 0.42;
+  }
+  .spinner {
+    display: none;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    border: 1.6px solid currentColor;
+    border-right-color: transparent;
+    animation: spin 700ms linear infinite;
+  }
+  .is-scanning .spinner {
+    display: block;
+  }
+  .results {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--content);
+    border-top: 1px solid var(--line);
+  }
+  .results-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 13px 18px 8px;
+    font-size: 11px;
+  }
+  .list {
+    flex: 1;
+    overflow: hidden;
+    padding: 0 9px;
+    position: relative;
+  }
+  .empty {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-align: center;
+    padding: 20px 40px 40px;
+    color: var(--muted);
+  }
+  .empty b {
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 500;
+    margin-top: 6px;
+  }
+  .empty.is-clean svg {
+    color: var(--success);
+  }
+  .list :global(.row) {
+    position: relative;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 14px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 9px;
+    border-radius: 6px;
+    border-bottom: 1px solid var(--line);
+    transition: background-color 200ms;
+  }
+  .list :global(.row.is-new) {
+    animation: arrive 360ms var(--ease);
+  }
+  .list :global(.row.is-selected) {
+    background: var(--selected);
+    border-bottom-color: transparent;
+  }
+  .list :global(.check) {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    border: 1.3px solid var(--muted);
+    display: grid;
+    place-items: center;
+    color: #fff;
+    transition:
+      background-color 160ms,
+      border-color 160ms;
+  }
+  .list :global(.check svg) {
+    stroke-width: 3.2;
+    transform: scale(0);
+    transition: transform 220ms var(--ease);
+  }
+  .list :global(.is-selected .check) {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .list :global(.is-selected .check svg) {
+    transform: none;
+  }
+  .list :global(.info) {
+    min-width: 0;
+    display: grid;
+    gap: 3px;
+  }
+  .list :global(.info b) {
+    font-size: 11.5px;
+  }
+  .list :global(.info code),
+  .list :global(.info small) {
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .list :global(.info small) {
+    font-size: 9.5px;
+  }
+  .list :global(.size) {
+    font-weight: 500;
+    font-size: 11.5px;
+    font-variant-numeric: tabular-nums;
+  }
+  .list :global(.row.is-deleting::after) {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, var(--sweep) 40%, var(--sweep) 60%, transparent);
+    animation: sweep 1.1s var(--ease) infinite;
+  }
+  .list :global(.row.is-deleting .size),
+  .list :global(.row.is-deleted .size) {
+    font-size: 0;
+  }
+  .list :global(.row.is-deleting .size::after) {
+    content: "Removing…";
+    font-size: 10.5px;
+    color: var(--muted);
+    font-weight: 400;
+  }
+  .list :global(.row.is-deleted) {
+    background: var(--success-soft);
+  }
+  .list :global(.row.is-deleted .size::after) {
+    content: "✓ Removed";
+    font-size: 10.5px;
+    color: var(--success);
+    display: inline-block;
+    animation: pop 320ms var(--ease);
+  }
+  .list :global(.row.is-deleted .info) {
+    opacity: 0.5;
+  }
+  .progress {
+    padding: 11px 18px;
+    border-top: 1px solid var(--line);
+    animation: rise 300ms var(--ease);
+  }
+  .progress-top {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+  }
+  .progress-top small {
+    margin-left: auto;
+  }
+  .glyph {
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--accent);
+    color: var(--content);
+    animation: breathe 0.9s ease-in-out infinite alternate;
+  }
+  .glyph svg {
+    stroke-width: 3.4;
+    transform: scale(0);
+    transition: transform 260ms var(--ease) 80ms;
+  }
+  .is-complete .glyph {
+    background: var(--success);
+    animation: pop 360ms var(--ease);
+  }
+  .is-complete .glyph svg {
+    transform: none;
+  }
+  .bar {
+    height: 3px;
+    margin-top: 9px;
+    border-radius: 3px;
+    overflow: hidden;
+    background: var(--line);
+  }
+  .bar span {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition:
+      transform 420ms var(--ease),
+      background-color 300ms;
+  }
+  .is-complete .bar span {
+    background: var(--success);
+  }
+  .foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 18px;
+    border-top: 1px solid var(--line);
+    font-size: 11.5px;
+  }
+  .foot small {
+    margin-top: 3px;
+    font-size: 10px;
+  }
+  .sheet {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 22px;
+    background: #0004;
+    animation: fade 160ms ease-out;
+    z-index: 2;
+  }
+  .sheet-card {
+    width: 100%;
+    padding: 20px;
+    border-radius: 14px;
+    background: var(--surface);
+    box-shadow: 0 16px 48px #0004;
+    animation: sheet 300ms var(--ease);
+  }
+  .sheet-title {
+    font-size: 16px;
+    letter-spacing: -0.3px;
+  }
+  .sheet-card p {
+    font-size: 11px;
+    line-height: 1.55;
+    margin-top: 8px;
+  }
+  .sheet-paths {
+    margin-top: 12px;
+    border-top: 1px solid var(--line);
+  }
+  .sheet-paths :global(code) {
+    display: block;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .sheet-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .sheet-actions .k {
+    flex: 1;
+  }
+  @keyframes track {
+    from { transform: translateX(-110%); }
+    to { transform: translateX(390%); }
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  @keyframes arrive {
+    from { opacity: 0; transform: translateY(8px); }
+  }
+  @keyframes sweep {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(100%); }
+  }
+  @keyframes pop {
+    0% { transform: scale(0.6); opacity: 0; }
+    60% { transform: scale(1.08); opacity: 1; }
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(8px); }
+  }
+  @keyframes breathe {
+    to { opacity: 0.45; }
+  }
+  @keyframes fade {
+    from { opacity: 0; }
+  }
+  @keyframes sheet {
+    from { opacity: 0.6; transform: translateY(10px) scale(0.98); }
+  }
+  @media (max-width: 420px) {
+    .panel {
+      height: 560px;
+    }
+  }
+</style>

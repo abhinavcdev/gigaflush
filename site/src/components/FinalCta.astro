@@ -1,0 +1,67 @@
+---
+import Mark from "./Mark.astro";
+import Icon from "./Icon.astro";
+import { GITHUB_URL } from "../config";
+---
+
+<section class="section final">
+  <div class="inner" data-reveal>
+    <div class="mark"><Mark size={48} /></div>
+    <h2>Flush the gigabytes.<br /><span class="dim">Keep the code.</span></h2>
+    <p>One scan, one review, one click. Your next side project will thank you.</p>
+    <div class="btns">
+      <a href="#pricing" class="key key-primary" data-press>Get Gigaflush <Icon name="ph:arrow-right" size={16} class="arrow" /></a>
+      <a href={GITHUB_URL} class="more-link">Star it on GitHub</a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .final {
+    padding-block: 104px;
+    overflow: hidden;
+  }
+  .inner {
+    position: relative;
+    text-align: center;
+  }
+  .mark {
+    position: relative;
+    display: inline-block;
+    
+    transition: transform 700ms var(--spring);
+  }
+
+  h2 {
+    position: relative;
+    margin-top: 36px;
+    font-family: var(--display);
+    font-size: clamp(36px, 4.8vw, 60px);
+    font-weight: 600;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+  }
+  p {
+    position: relative;
+    margin-top: 20px;
+    font-size: 21px;
+    color: var(--muted);
+  }
+  .btns {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    margin-top: 40px;
+  }
+  .btns .key {
+    height: 48px;
+    padding: 0 26px;
+    font-size: 17px;
+  }
+  .btns .more-link {
+    font-size: 17px;
+  }
+</style>

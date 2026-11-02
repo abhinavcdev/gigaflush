@@ -1,0 +1,81 @@
+---
+import Base from "./Base.astro";
+interface Props {
+  title: string;
+  description: string;
+  updated?: string;
+}
+const { title, description, updated } = Astro.props;
+---
+
+<Base title={`${title} — Gigaflush`} description={description}>
+  <main class="frame">
+    <div class="prose">
+      <header data-reveal>
+        <h1>{title}</h1>
+        {updated && <p class="updated">Last updated {updated}</p>}
+      </header>
+      <article data-reveal style="--d:1"><slot /></article>
+    </div>
+  </main>
+</Base>
+
+<style>
+  .prose {
+    max-width: 760px;
+    padding: 112px 64px 128px;
+  }
+  @media (max-width: 760px) {
+    .prose {
+      padding: 72px 20px 96px;
+    }
+  }
+  h1 {
+    font-family: var(--display);
+    font-size: clamp(36px, 5vw, 56px);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.05;
+    text-wrap: balance;
+  }
+  .updated {
+    color: var(--faint);
+    margin-top: 12px;
+    font-size: 14px;
+  }
+  article {
+    margin-top: 48px;
+    font-size: 16px;
+    line-height: 1.7;
+  }
+  article :global(h2) {
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin: 44px 0 10px;
+  }
+  article :global(p),
+  article :global(li) {
+    color: var(--muted);
+  }
+  article :global(p + p),
+  article :global(ul) {
+    margin-top: 12px;
+  }
+  article :global(ul) {
+    padding-left: 20px;
+  }
+  article :global(li + li) {
+    margin-top: 6px;
+  }
+  article :global(a) {
+    color: var(--text);
+    text-decoration: underline;
+    text-decoration-color: var(--line-strong);
+    text-underline-offset: 3px;
+  }
+  article :global(strong) {
+    color: var(--text);
+    font-weight: 600;
+  }
+</style>

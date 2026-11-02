@@ -1,16 +1,16 @@
-// Deploys the NodeMinus landing page as a Cloudflare Worker with static
-// assets (no server code — assets only).
+// Deploys the Gigaflush landing page (Astro static build) as a Cloudflare
+// Worker with static assets — no server code.
 //
-//   npx wrangler deploy -c site/wrangler.jsonc
+//   npm run site:deploy   (from the repo root)
 //
 // Add a custom domain afterwards in the Cloudflare dashboard
-// (Workers & Pages → nodeminus-site → Settings → Domains & Routes).
+// (Workers & Pages → gigaflush-site → Settings → Domains & Routes).
 {
   "$schema": "https://unpkg.com/wrangler/config-schema.json",
-  "name": "nodeminus-site",
+  "name": "gigaflush-site",
   "compatibility_date": "2026-07-01",
   "assets": {
-    "directory": ".",
+    "directory": "./dist",
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "single-page-application"
   }
