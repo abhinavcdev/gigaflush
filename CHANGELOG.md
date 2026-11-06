@@ -5,7 +5,29 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [0.2.0] — 2026-11-06
+## [Unreleased]
+
+### Changed
+
+- **New logo: the tap-G.** A softened squircle G whose top end is a tap,
+  with a drop falling into the letter, filled with the cleanup colours as
+  soft layers. Replaces the previous mark, which was too close to Google's G.
+  New app icon set, menu-bar icon, favicon, site logo and OG cards, all
+  generated from `brand/make.py`.
+- **Our own cleanup colours.** Node.js, Rust, Flutter and other are now
+  periwinkle, lavender, seafoam and rose in the app's reclaim bar and on the
+  site, tuned separately for light and dark.
+
+## [0.2.1] — 2026-11-06
+
+The first published build of the 0.2.0 changes below.
+
+### Fixed
+
+- Release builds: `@tauri-apps/api` is pinned to 2.11 to match the `tauri`
+  crate, and the workflow uploads installers by file pattern.
+
+## [0.2.0] — 2026-11-06 (not published)
 
 ### Added
 

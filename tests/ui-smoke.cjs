@@ -11,6 +11,8 @@ const server = http.createServer((req, res) => {
     "/": "index.html",
     "/main.js": "main.js",
     "/styles.css": "styles.css",
+    "/brand/app-icon.svg": "brand/app-icon.svg",
+    "/brand/app-icon-light.svg": "brand/app-icon-light.svg",
   };
   const file = files[req.url];
   if (!file) {
@@ -24,7 +26,9 @@ const server = http.createServer((req, res) => {
       ? "text/css"
       : file.endsWith(".js")
         ? "text/javascript"
-        : "text/html",
+        : file.endsWith(".svg")
+          ? "image/svg+xml"
+          : "text/html",
   );
   res.end(fs.readFileSync(path.join(root, "src", file)));
 });

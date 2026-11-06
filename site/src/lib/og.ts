@@ -1,7 +1,7 @@
 // Open Graph cards, rendered at build time: satori lays the card out as SVG
 // (text becomes paths, so no font is needed at view time) and sharp turns it
 // into a PNG. The look follows the site: white page, hairline frame with "+"
-// crosses, hatched rails, the app-icon mark, and the reclaim bar's colors.
+// crosses, hatched rails, the app icon, and the cleanup colours of the reclaim bar.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import satori from "satori";
@@ -65,7 +65,7 @@ const C = {
   hatch: "#ededf1",
   chip: "#f2f2f5",
   accent: "#0071e3",
-  slots: ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"],
+  slots: ["#6271f5", "#9d72f0", "#1fae9d", "#e5779c"], // cleanup colours (brand/make.py)
 };
 
 const fontDir = join(process.cwd(), "node_modules/@fontsource");
@@ -80,18 +80,12 @@ const loadFonts = () =>
 
 const svgUri = (svg: string) => `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 
-const MARK = svgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="100 100 824 824">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a2c2f"/><stop offset="1" stop-color="#141516"/></linearGradient>
-    <linearGradient id="tail" gradientUnits="userSpaceOnUse" x1="512" y1="800" x2="800" y2="470"><stop offset="0" stop-color="#2f80ff"/><stop offset="1" stop-color="#5fb2ff"/></linearGradient>
-  </defs>
-  <rect x="100" y="100" width="824" height="824" rx="196" fill="url(#bg)"/>
-  <g fill="none" stroke-width="112" stroke-linejoin="round">
-    <path d="M687.3 317.3A262 262 0 1 0 774 512" stroke="#f4f5f1" stroke-linecap="round"/>
-    <path d="M512 774A262 262 0 0 0 774 512H552" stroke="url(#tail)"/>
-    <circle cx="552" cy="512" r="56" fill="url(#tail)"/>
-  </g>
-</svg>`);
+// The app icon from brand/make.py, cropped to its tile.
+const MARK = svgUri(
+  readFileSync(join(process.cwd(), "public/brand/app-icon.svg"), "utf8")
+    .replace('viewBox="0 0 1024 1024"', 'viewBox="100 100 824 824"')
+    .replace(/ width="1024" height="1024"/, ""),
+);
 
 const HATCH = svgUri(
   `<svg xmlns="http://www.w3.org/2000/svg" width="${RAIL}" height="${H}">` +
