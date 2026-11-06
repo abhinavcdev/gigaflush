@@ -13,7 +13,7 @@
     "site:deploy": "npm --prefix site run build && wrangler deploy -c site/wrangler.jsonc"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2"
+    "@tauri-apps/api": "~2.11.1"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",
