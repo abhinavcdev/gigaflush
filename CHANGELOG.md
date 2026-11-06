@@ -9,11 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
-- **New logo: the tap-G.** A softened squircle G whose top end is a tap,
-  with a drop falling into the letter, filled with the cleanup colours as
-  soft layers. Replaces the previous mark, which was too close to Google's G.
-  New app icon set, menu-bar icon, favicon, site logo and OG cards, all
-  generated from `brand/make.py`.
+- **New logo: "g."** A bold lowercase g with a square full stop. Its bowl
+  is solid blue: the part of the disk Gigaflush frees. Replaces the previous
+  mark, which was too close to Google's G. New app icon set, menu-bar icon,
+  favicon, site logo and OG cards, all generated from `brand/make.py`.
 - **Our own cleanup colours.** Node.js, Rust, Flutter and other are now
   periwinkle, lavender, seafoam and rose in the app's reclaim bar and on the
   site, tuned separately for light and dark.
