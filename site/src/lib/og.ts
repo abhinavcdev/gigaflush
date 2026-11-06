@@ -18,12 +18,23 @@ export type Card = {
   subtitle?: string;
   chips?: string[];
   meta?: string;
+  mockup?: boolean; // the app panel on the right (home card)
+  size?: number; // headline size override
 };
 
 export async function cards(): Promise<Card[]> {
   const posts = await getPosts();
   return [
-    { key: "index", kicker: "Free and open source", title: "Your disk isn't full.", dim: "It's node_modules.", breakDim: true, meta: "macOS · Windows · Linux" },
+    {
+      key: "index",
+      kicker: "Free for macOS, Windows, Linux",
+      title: "Your disk isn't full.",
+      dim: "It's build caches.",
+      breakDim: true,
+      chips: ["node_modules", "target", "build", ".gradle"],
+      mockup: true,
+      size: 54,
+    },
     { key: "guides", kicker: "Cleanup guides", title: "Is it safe to delete", dim: "that folder?", chips: guides.flatMap((g) => g.folders).filter((f, i, a) => a.indexOf(f) === i).slice(0, 5) },
     { key: "blog", kicker: "Blog", title: "Notes on disk space,", dim: "node_modules and build caches.", meta: `${posts.length} articles` },
     ...guides.map((g) => ({
@@ -81,11 +92,14 @@ const loadFonts = () =>
 const svgUri = (svg: string) => `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 
 // The app icon from brand/make.py, cropped to its tile.
-const MARK = svgUri(
-  readFileSync(join(process.cwd(), "public/brand/app-icon.svg"), "utf8")
-    .replace('viewBox="0 0 1024 1024"', 'viewBox="100 100 824 824"')
-    .replace(/ width="1024" height="1024"/, ""),
-);
+const icon = (file: string) =>
+  svgUri(
+    readFileSync(join(process.cwd(), "public/brand", file), "utf8")
+      .replace('viewBox="0 0 1024 1024"', 'viewBox="100 100 824 824"')
+      .replace(/ width="1024" height="1024"/, ""),
+  );
+const MARK = icon("app-icon.svg");
+const MARK_LIGHT = icon("app-icon-light.svg");
 
 const HATCH = svgUri(
   `<svg xmlns="http://www.w3.org/2000/svg" width="${RAIL}" height="${H}">` +
@@ -109,9 +123,86 @@ const words = (text?: string) => (text ? typeset(text).split(/\s+/) : []);
 // Headline size steps down with length so long post titles still fit.
 const headlineSize = (len: number) => (len <= 30 ? 84 : len <= 48 ? 72 : len <= 66 ? 62 : 54);
 
+// The app's panel in light mode, as on the site's hero: drawn from the same
+// numbers and colours, running off the bottom of the card.
+const ROWS = [
+  { name: "atlas-mobile", path: "~/Developer/atlas-mobile/build", size: "3.0 GB", on: true },
+  { name: "studio-web", path: "~/Developer/studio-web/node_modules", size: "935.6 MB" },
+  { name: "search-index", path: "~/Developer/search-index/target", size: "745.8 MB" },
+  { name: "billing-api", path: "~/Developer/billing-api/.gradle", size: "398.6 MB" },
+];
+
+function mockup(): Node {
+  const label = (text: string, style: Record<string, unknown> = {}) => h("div", { fontSize: 14, color: C.muted, ...style }, text);
+  return abs(
+    {
+      left: 668,
+      top: 132,
+      width: 412, // + padding and border = 460, ending inside the frame
+      boxSizing: "content-box",
+      height: 560,
+      flexDirection: "column",
+      padding: "24px 24px 0",
+      background: "#fbfbfd",
+      border: `1px solid ${C.line}`,
+      borderRadius: 24,
+      boxShadow: "0 2px 6px rgba(0,0,0,0.04), 0 30px 60px -24px rgba(0,0,0,0.22)",
+    },
+    // Titlebar: icon, segmented control.
+    h(
+      "div",
+      { alignItems: "center", justifyContent: "space-between" },
+      h("div", { alignItems: "center", gap: 10 }, img(MARK_LIGHT, { width: 32, height: 32 })),
+      h(
+        "div",
+        { padding: 3, borderRadius: 10, background: "#ececf0", fontSize: 14, fontWeight: 600 },
+        h("div", { padding: "5px 18px", borderRadius: 8, background: "#ffffff", boxShadow: "0 1px 2px rgba(0,0,0,0.08)" }, "Files"),
+        h("div", { padding: "5px 18px", color: C.muted }, "Servers"),
+      ),
+      h("div", { width: 32 }),
+    ),
+    // Total.
+    h(
+      "div",
+      { marginTop: 22, justifyContent: "space-between", alignItems: "flex-end" },
+      h("div", { flexDirection: "column" }, h("div", { fontSize: 46, fontWeight: 600, letterSpacing: -1.6, lineHeight: 1 }, "5.1 GB"), label("Estimated reclaimable", { marginTop: 6 })),
+      h("div", { flexDirection: "column", alignItems: "flex-end" }, h("div", { fontSize: 24, fontWeight: 600 }, "4"), label("folders", { fontSize: 13 })),
+    ),
+    // Reclaim bar and legend.
+    h("div", { marginTop: 18, gap: 3, height: 10 }, [0.58, 0.18, 0.16, 0.08].map((w, i) => h("div", { width: `${w * 100}%`, height: 10, borderRadius: 5, background: C.slots[i] }))),
+    h(
+      "div",
+      { marginTop: 12, gap: 16 },
+      ["Flutter", "Node.js", "Rust", "Gradle"].map((t, i) => h("div", { alignItems: "center", gap: 6, fontSize: 13, color: C.muted }, h("div", { width: 9, height: 9, borderRadius: 3, background: C.slots[i] }), t)),
+    ),
+    // List.
+    h("div", { marginTop: 20, height: 1, background: C.line }),
+    h("div", { marginTop: 16, justifyContent: "space-between", alignItems: "center" }, h("div", { fontSize: 15, fontWeight: 600 }, "Generated files"), label("largest first", { fontSize: 13 })),
+    h(
+      "div",
+      { marginTop: 10, flexDirection: "column", gap: 6 },
+      ROWS.map((r) =>
+        h(
+          "div",
+          { alignItems: "center", gap: 14, padding: "11px 14px", borderRadius: 12, background: r.on ? "#eaf3ff" : "#ffffff", border: `1px solid ${r.on ? "#d3e5ff" : "#efeff3"}` },
+          h("div", { width: 18, height: 18, borderRadius: 5, background: r.on ? C.accent : "#ffffff", border: r.on ? "none" : "1.5px solid #c7c7cc" }),
+          h(
+            "div",
+            { flexDirection: "column", flexGrow: 1 },
+            h("div", { fontSize: 15, fontWeight: 600 }, r.name),
+            h("div", { fontFamily: "Mono", fontSize: 11.5, color: C.muted, marginTop: 2 }, r.path),
+          ),
+          h("div", { fontSize: 15, fontWeight: 600 }, r.size),
+        ),
+      ),
+    ),
+  );
+}
+
 function layout(card: Card): Node {
   const headline = card.dim ? `${card.title} ${card.dim}` : card.title;
-  const size = headlineSize(headline.length + (card.subtitle ? 14 : 0));
+  const size = card.size ?? headlineSize(headline.length + (card.subtitle ? 14 : 0));
+  const textWidth = card.mockup ? 540 : 1000;
   const url = `gigaflush.com${card.key === "index" ? "" : `/${card.key}`}`;
   const crosses = [
     [RAIL, TOP],
@@ -151,7 +242,7 @@ function layout(card: Card): Node {
       h("div", { fontSize: 24, fontWeight: 600, color: C.accent, letterSpacing: -0.3 }, card.kicker),
       h(
         "div",
-        { flexWrap: "wrap", marginTop: 18, maxWidth: 1000, fontSize: size, fontWeight: 600, lineHeight: 1.04, letterSpacing: -size * 0.035 },
+        { flexWrap: "wrap", marginTop: 18, maxWidth: textWidth, fontSize: size, fontWeight: 600, lineHeight: 1.04, letterSpacing: -size * 0.035 },
         // One span per word, so wrapping never carries an indent onto a new line.
         words(card.title).map((w) => h("span", { marginRight: size * 0.24 }, w)),
         card.breakDim ? h("div", { width: "100%", height: 0 }) : undefined,
@@ -177,6 +268,8 @@ function layout(card: Card): Node {
         [0.38, 0.24, 0.3, 0.08].map((w, i) => h("div", { width: `${w * 100}%`, height: 10, borderRadius: 5, background: C.slots[i] })),
       ),
     ),
+    // The app panel sits over the frame and footer.
+    card.mockup ? mockup() : undefined,
   );
 }
 
