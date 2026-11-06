@@ -43,20 +43,26 @@ Inaccessible directories are skipped during scanning. Checks run again immediate
 before removal, but path-based deletion is not an atomic filesystem snapshot; do
 not move or replace project directories during cleanup.
 
-## Get Gigaflush
+## Download
 
-Gigaflush is open source. You can always build it yourself (see below), or
-buy a ready-to-run build, which is how the project is funded:
+Gigaflush is free on every platform. Grab the latest build from
+[gigaflush.com](https://gigaflush.com/#download) or directly:
 
-| Platform | Build | Price |
-|----------|-------|-------|
-| macOS (Apple Silicon + Intel) | Signed and notarized `.dmg` | $4.99 on [gigaflush.app](https://gigaflush.app/#pricing) |
-| Windows 10/11 (x64) | Signed `.exe` installer | $4.99 on [gigaflush.app](https://gigaflush.app/#pricing) |
-| Linux (x86_64) | `.AppImage` or `.deb` | Free on [GitHub Releases](https://github.com/abhinavcdev/gigaflush/releases/latest) |
+| Platform | Download |
+|----------|----------|
+| macOS 11+ (Apple Silicon + Intel) | [`Gigaflush-macos-universal.dmg`](https://github.com/abhinavcdev/gigaflush/releases/latest/download/Gigaflush-macos-universal.dmg) |
+| Windows 10/11 (x64) | [`setup.exe`](https://github.com/abhinavcdev/gigaflush/releases/latest/download/Gigaflush-windows-x64-setup.exe) · [`.msi`](https://github.com/abhinavcdev/gigaflush/releases/latest/download/Gigaflush-windows-x64.msi) |
+| Linux (x86_64) | [`.AppImage`](https://github.com/abhinavcdev/gigaflush/releases/latest/download/Gigaflush-linux-x86_64.AppImage) · [`.deb`](https://github.com/abhinavcdev/gigaflush/releases/latest/download/Gigaflush-linux-amd64.deb) · [`.rpm`](https://github.com/abhinavcdev/gigaflush/releases/latest/download/Gigaflush-linux-x86_64.rpm) |
 
-Paid builds are sold and delivered through [Polar](https://polar.sh), which
-handles checkout, tax, receipts, and re-downloads of new versions. Linux
-releases ship a `SHA256SUMS.txt` alongside the binaries.
+Every release ships a `SHA256SUMS.txt`. The builds are not code-signed, so the
+OS asks once on first launch:
+
+- **macOS:** open the app, then System Settings → Privacy & Security →
+  **Open Anyway**. Or: `xattr -dr com.apple.quarantine /Applications/Gigaflush.app`
+- **Windows:** on the SmartScreen prompt, click **More info → Run anyway**.
+- **Linux:** `chmod +x Gigaflush-linux-x86_64.AppImage` and run it.
+
+If Gigaflush saves you some space, there's a [tip jar](https://gigaflush.com/#tip).
 
 ## Features
 
@@ -139,15 +145,15 @@ synthetic project data and are saved under `.impeccable/review/`.
 │   └── capabilities/     # Tauri v2 permission scoping
 ├── brand/                # Logo sources (app icon, monochrome mark, OG image)
 ├── site/                 # Astro landing page (npm run site:dev / site:build)
-└── .github/workflows/    # Release pipeline (builds + publishes to GitHub Releases)
+└── .github/workflows/    # CI (tests, site build) and release (builds + GitHub Release)
 ```
 
 ## Releasing
 
-Maintainers: see [RELEASING.md](RELEASING.md) for the full release process —
-tagging a version builds all four platform targets and publishes them to a
-GitHub Release, with stable download URLs the landing page links to directly.
-No external storage or secrets required.
+Maintainers: see [RELEASING.md](RELEASING.md). In short, run **Actions → Release
+→ Run workflow** with a version number. It bumps the version, tags it, builds
+macOS, Windows and Linux, and publishes a GitHub Release with stable download
+URLs that the website links to directly. No secrets required.
 
 ## Contributing
 

@@ -40,8 +40,8 @@
       1 96.7%,
       1 99.3%,
       1
-    )
-    --spring-bounce:
+    );
+  --spring-bounce:
     linear(
       0,
       0.075 2.9%,
@@ -82,8 +82,8 @@
       1 97.1%,
       1 99.8%,
       1
-    )
-    --spring-soft:
+    );
+  --spring-soft:
     linear(
       0,
       0.036 2.9%,
@@ -124,25 +124,26 @@
       0.999 96.2%,
       0.999 98.9%,
       1
-    )
-    color-scheme: light dark;
-  --surface: #f7f7f5;
+    );
+  color-scheme: light dark;
+  /* Light: near-white macOS neutrals (white content, system blue). */
+  --surface: #fbfbfd;
   --content: #fff;
-  --control: #eeefed;
-  --hover: #e5e6e3;
-  --text: #202320;
-  --muted: #626761;
-  --line: #dedfdb;
-  --accent: #0869d1;
-  --selected: #e8f1fc;
-  --danger: #bd302b;
-  --success: #28733f;
-  --success-soft: #28733f14;
-  --sweep: #0869d114;
-  --sheet-shadow: 0 16px 48px #0003;
+  --control: #efeff3;
+  --hover: #e4e4e9;
+  --text: #1d1d1f;
+  --muted: #6e6e73;
+  --line: #e6e6eb;
+  --accent: #0071e3;
+  --selected: #eaf3ff;
+  --danger: #d70015;
+  --success: #248a3d;
+  --success-soft: #248a3d14;
+  --sweep: #0071e314;
+  --sheet-shadow: 0 16px 48px #0000002e;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --thumb: #fff;
-  --panel: #ebece9;
+  --panel: #f3f3f6;
   --ghost: #7a5af5;
   --slot-1: #2a78d6;
   --slot-2: #eb6834;

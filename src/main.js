@@ -34,13 +34,13 @@ const THEME_KEY = "gigaflush:theme";
 const UPDATE_KEY = "gigaflush:updateCheck";
 const UPDATE_INTERVAL = 12 * 60 * 60 * 1000;
 const GITHUB_REPO = "abhinavcdev/gigaflush";
-// Paid macOS/Windows builds are delivered through Polar; buyers download new
-// versions from their Polar library. Linux builds live on GitHub Releases.
+// Every platform downloads from the download section of the site, which links
+// straight to the latest GitHub Release.
 const LINKS = {
   source: `https://github.com/${GITHUB_REPO}`,
-  support: "https://gigaflush.app/support",
-  library: "https://polar.sh/gigaflush/portal",
-  releases: `https://github.com/${GITHUB_REPO}/releases/latest`,
+  support: "https://gigaflush.com/support",
+  download: "https://gigaflush.com/#download",
+  tip: "https://gigaflush.com/#tip",
 };
 let appVersion = "";
 const THEME_MODES = ["system", "light", "dark"];
@@ -207,7 +207,7 @@ function bindEvents() {
   els.hideBtn.addEventListener("click", hideWindow);
   els.themeBtn.addEventListener("click", cycleTheme);
   els.updateBanner.addEventListener("click", () =>
-    openExternal(isLinux() ? LINKS.releases : LINKS.library),
+    openExternal(LINKS.download),
   );
   document
     .querySelectorAll("[data-link]")
@@ -391,12 +391,6 @@ function openExternal(url) {
   );
 }
 
-function isLinux() {
-  return (
-    /Linux/i.test(navigator.userAgent) && !/Android/i.test(navigator.userAgent)
-  );
-}
-
 function isNewer(latest, current) {
   const parse = (v) =>
     v
@@ -411,7 +405,7 @@ function isNewer(latest, current) {
 }
 
 // Builds are distributed outside an app store, so the panel checks GitHub for
-// a newer release at most twice a day and offers the right download page.
+// a newer release at most twice a day and links to the download page.
 async function checkForUpdates() {
   try {
     if (!appVersion) {

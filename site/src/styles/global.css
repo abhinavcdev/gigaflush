@@ -7,17 +7,17 @@
 
 :root {
   color-scheme: light dark;
-  --page: #faf9f6;
-  --surface: #f0efeb;
+  --page: #ffffff;
+  --surface: #fafafc;
   --content: #ffffff;
-  --control: #e8e7e2;
-  --hover: #deddd7;
-  --text: #242623;
-  --muted: #62655e;
-  --faint: #74776f;
-  --line: #dedfd8;
-  --line-strong: #c4c7be;
-  --hatch: #eeede8;
+  --control: #f0f0f4;
+  --hover: #e6e6eb;
+  --text: #1d1d1f;
+  --muted: #6e6e73;
+  --faint: #737378;
+  --line: #ececf0;
+  --line-strong: #d8d8dd;
+  --hatch: #f5f5f8;
   --accent: #0071e3;
   --accent-hover: #0077ed;
   --accent-2: #8e5cf7;

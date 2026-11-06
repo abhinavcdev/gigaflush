@@ -1,0 +1,9 @@
+// Redirects www.gigaflush.com to the apex domain.
+//   npx wrangler deploy -c site/www-redirect/wrangler.jsonc
+{
+  "$schema": "https://unpkg.com/wrangler/config-schema.json",
+  "name": "gigaflush-www-redirect",
+  "main": "./index.js",
+  "compatibility_date": "2026-07-01",
+  "routes": [{ "pattern": "www.gigaflush.com", "custom_domain": true }]
+}

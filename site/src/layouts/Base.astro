@@ -5,18 +5,35 @@ import "@fontsource-variable/inter/opsz.css";
 import "../styles/global.css";
 import Nav from "../components/Nav.astro";
 import Footer from "../components/Footer.astro";
+import { ogImageFor } from "../lib/og";
 
 interface Props {
   title: string;
   description: string;
   image?: string;
+  imageAlt?: string;
   type?: "website" | "article";
+  published?: Date;
+  modified?: Date;
   schema?: Record<string, unknown> | Record<string, unknown>[];
   noindex?: boolean;
 }
-const { title, description, image = "/og.png", type = "website", schema, noindex = false } = Astro.props;
+const {
+  title,
+  description,
+  image,
+  imageAlt,
+  type = "website",
+  published,
+  modified,
+  schema,
+  noindex = false,
+} = Astro.props;
+// Search results show ~60 characters; add the brand only when it fits.
+const fullTitle = title.includes("Gigaflush") || title.length > 48 ? title : `${title} | Gigaflush`;
 const canonical = new URL(Astro.url.pathname.replace(/\/$/, "") || "/", Astro.site);
-const ogImage = new URL(image, Astro.site);
+const ogImage = new URL(image ?? (await ogImageFor(Astro.url.pathname)), Astro.site);
+const ogAlt = imageAlt ?? `${title.replace(/^Gigaflush — /, "")}. Gigaflush: free developer disk cleanup for macOS, Windows and Linux.`;
 const schemas = schema ? (Array.isArray(schema) ? schema : [schema]) : [];
 ---
 
@@ -25,26 +42,42 @@ const schemas = schema ? (Array.isArray(schema) ? schema : [schema]) : [];
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
+    <title>{fullTitle}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
-    {noindex && <meta name="robots" content="noindex" />}
+    <meta name="robots" content={noindex ? "noindex, follow" : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"} />
+    <meta name="author" content="Gigaflush" />
+    <meta name="application-name" content="Gigaflush" />
+    <meta name="apple-mobile-web-app-title" content="Gigaflush" />
+    <meta name="format-detection" content="telephone=no" />
     <meta property="og:type" content={type} />
     <meta property="og:site_name" content="Gigaflush" />
-    <meta property="og:title" content={title} />
+    <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:alt" content={ogAlt} />
+    <meta property="og:locale" content="en_US" />
+    {published && <meta property="article:published_time" content={published.toISOString()} />}
+    {modified && <meta property="article:modified_time" content={modified.toISOString()} />}
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content={title} />
+    <meta name="twitter:title" content={fullTitle} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImage} />
-    <meta name="theme-color" content="#faf9f6" media="(prefers-color-scheme: light)" />
+    <meta name="twitter:image:alt" content={ogAlt} />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#191b19" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="alternate" type="application/rss+xml" title="Gigaflush blog" href="/rss.xml" />
     <link rel="sitemap" href="/sitemap-index.xml" />
+    <link rel="alternate" type="text/plain" title="llms.txt" href="/llms.txt" />
+    <link rel="preconnect" href="https://api.github.com" crossorigin />
     {schemas.map((s) => <script type="application/ld+json" set:html={JSON.stringify(s)} />)}
     <script is:inline>
       // Pinned theme and JS flag before first paint; "system" defers to CSS.

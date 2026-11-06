@@ -2,13 +2,13 @@
 import Base from "../layouts/Base.astro";
 import Mark from "../components/Mark.astro";
 import { platforms, guides } from "../data/cleanup";
-import { POLAR, LINUX, PRICE, GITHUB_URL } from "../config";
+import { DOWNLOADS, GITHUB_URL } from "../config";
 
 export function getStaticPaths() {
   return platforms.map((p) => ({ params: { platform: p.slug }, props: { p } }));
 }
 const { p } = Astro.props;
-const buy = p.slug === "mac" ? POLAR.mac : p.slug === "windows" ? POLAR.windows : LINUX.appimage;
+const download = p.slug === "mac" ? DOWNLOADS.mac : p.slug === "windows" ? DOWNLOADS.windows : DOWNLOADS.appimage;
 const schema = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
@@ -17,7 +17,9 @@ const schema = {
   applicationCategory: "DeveloperApplication",
   description: p.description,
   url: new URL(`/${p.slug}`, Astro.site).href,
-  offers: { "@type": "Offer", price: p.price === "Free" ? "0" : PRICE.replace("$", ""), priceCurrency: "USD" },
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  downloadUrl: download,
   license: "https://www.gnu.org/licenses/gpl-3.0.html",
 };
 ---
@@ -30,9 +32,10 @@ const schema = {
         <h1 data-reveal style="--d:1">{p.h1}</h1>
         <p class="lede" data-reveal style="--d:2">{p.blurb}</p>
         <div class="ctas" data-reveal style="--d:3">
-          <a href={buy} class="key key-primary" data-press>{p.price === "Free" ? "Download AppImage" : `Buy for ${p.name} · ${p.price}`}</a>
-          {p.slug === "linux" ? <a href={LINUX.deb} class="key key-ghost" data-press>.deb package</a> : <a href={GITHUB_URL} class="key key-ghost" data-press>Build from source</a>}
+          <a href={download} class="key key-primary" data-press download>{p.cta}</a>
+          {p.slug === "linux" ? <a href={DOWNLOADS.deb} class="key key-ghost" data-press download>.deb package</a> : <a href="/#download" class="key key-ghost" data-press>First-launch steps</a>}
         </div>
+        <p class="free" data-reveal style="--d:4">Free and open source · <a href={GITHUB_URL}>Source on GitHub</a></p>
       </div>
       <div class="badge" data-reveal style="--d:2">
         <Mark size={120} />
@@ -91,6 +94,17 @@ const schema = {
     flex-wrap: wrap;
     gap: 10px;
     margin-top: 32px;
+  }
+  .free {
+    margin-top: 16px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .free a {
+    color: var(--text);
+    text-decoration: underline;
+    text-decoration-color: var(--line-strong);
+    text-underline-offset: 3px;
   }
   .badge {
     display: grid;

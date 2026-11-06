@@ -1,15 +1,6 @@
 ---
 import { GITHUB_URL } from "../config";
-const faqs = [
-  { q: "Why pay if it's open source?", a: "You're paying for convenience and to keep the project going: a signed, notarized macOS app and a signed Windows installer, ready to run. You can always build it yourself from the source for free." },
-  { q: "What does the Servers tab stop?", a: "Only your own Node, Bun, Deno, Python, Ruby and PHP dev servers that have nothing connected to their port, have used almost no CPU, and were orphaned by a closed terminal or agent or have run for 6+ hours. Databases, Docker, editors, agents and language servers are never listed. Each one is re-checked, then asked to exit like Ctrl+C. Available on macOS and Linux; Windows is next." },
-  { q: "Does it move files to the Trash?", a: "No. Cleanup is permanent, which is what actually frees the space. That's why every removal goes through a review sheet listing exact paths and rebuild steps first." },
-  { q: "What will it never touch?", a: "Source code, lockfiles, virtual environments, global caches, SDKs, and generic dist/ or build/ folders without a matching project file. Inaccessible directories are skipped." },
-  { q: "How do updates work?", a: "Gigaflush checks GitHub for a newer version at most twice a day and shows a small banner. Paid builds link to your Polar library, where new versions appear for download. Linux builds link to GitHub Releases." },
-  { q: "Does Gigaflush collect any data?", a: "No telemetry, no analytics, no account. The update check is a plain request to GitHub's public API. Scanning and cleanup happen entirely on your machine." },
-  { q: "How accurate are the sizes?", a: "They're logical file-size estimates. Actual disk savings can differ with filesystem compression, clones, or hard links." },
-  { q: "Something isn't working.", a: "Open an issue on GitHub or email support. If it doesn't work on your machine, see the refund terms." },
-];
+import { faqs } from "../data/faq";
 ---
 
 <section class="section faq-wrap">

@@ -1,6 +1,7 @@
 ---
 title: "npkill vs kondo vs Gigaflush: which project cleaner should you use?"
-description: "An honest comparison of three tools for deleting node_modules and build folders: interfaces, supported ecosystems, safety checks and price, and when each is the right pick."
+seoTitle: "npkill vs kondo vs Gigaflush: which cleaner to use?"
+description: "An honest comparison of npkill, kondo and Gigaflush for deleting node_modules and build folders: interface, ecosystems, safety, and when to use each."
 date: 2026-11-01
 tags: ["comparison", "node_modules", "tools"]
 keywords: ["npkill alternative", "kondo alternative", "npkill vs kondo", "best node_modules cleaner", "node_modules cleaner gui", "project cleaner mac", "clean build folders tool", "npkill gui"]
@@ -22,12 +23,12 @@ Three open-source tools come up whenever someone asks how to get rid of old `nod
 |---|---|---|---|
 | **Interface** | Interactive terminal UI | CLI, plus a separate GUI (`kondo-ui`) | Menu-bar / system-tray app |
 | **Written in** | TypeScript (runs on Node.js) | Rust | Rust backend, web UI (Tauri) |
-| **Install** | `npx npkill` | Homebrew, winget, MacPorts, pacman, cargo | Download (signed builds paid, Linux free), or build from source |
+| **Install** | `npx npkill` | Homebrew, winget, MacPorts, pacman, cargo | Free download for macOS, Windows and Linux, or build from source |
 | **Default target** | `node_modules` | 20+ project types | `node_modules` plus Rust, Flutter/Dart, Python tool caches, Swift, Gradle, Maven |
 | **Other targets** | Yes, via `--targets` and profiles | Built in | Built in; toggle types on and off |
 | **Detects the project** | Matches folder names | Detects project types | Requires a sibling marker file (e.g. `package.json`, `Cargo.toml`) |
 | **Age filter** | Shows last-modified, sorts by age | `--older` (e.g. `-o3M`) | Not yet |
-| **Licence / price** | MIT, free | MIT, free | GPL-3.0; free source, paid signed builds for macOS and Windows |
+| **Licence / price** | MIT, free | MIT, free | GPL-3.0, free |
 
 ## npkill
 
@@ -56,4 +57,4 @@ It supports fewer ecosystems than kondo today. If you need Unity or .NET cleanup
 
 ## The honest answer
 
-If you're comfortable in a terminal, try `npx npkill` or `kondo` first: they're free and excellent. If you want the same job done from your menu bar with a review step you can trust, that's what [Gigaflush](/#pricing) is for. Either way, the space you get back is the same.
+If you're comfortable in a terminal, try `npx npkill` or `kondo` first: they're free and excellent. If you want the same job done from your menu bar with a review step you can trust, that's what [Gigaflush](/#download) is for. Either way, the space you get back is the same.

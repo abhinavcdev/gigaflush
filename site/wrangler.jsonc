@@ -1,17 +1,19 @@
 // Deploys the Gigaflush landing page (Astro static build) as a Cloudflare
-// Worker with static assets — no server code.
+// Worker with static assets only, so no request ever runs Worker code:
 //
 //   npm run site:deploy   (from the repo root)
 //
-// Add a custom domain afterwards in the Cloudflare dashboard
-// (Workers & Pages → gigaflush-site → Settings → Domains & Routes).
+// www.gigaflush.com is redirected by the separate Worker in ./www-redirect.
 {
   "$schema": "https://unpkg.com/wrangler/config-schema.json",
   "name": "gigaflush-site",
   "compatibility_date": "2026-07-01",
   "assets": {
     "directory": "./dist",
-    "html_handling": "auto-trailing-slash",
-    "not_found_handling": "single-page-application"
-  }
+    // Canonical URLs have no trailing slash: /blog serves blog/index.html
+    // and /blog/ redirects to /blog.
+    "html_handling": "drop-trailing-slash",
+    "not_found_handling": "404-page"
+  },
+  "routes": [{ "pattern": "gigaflush.com", "custom_domain": true }]
 }

@@ -6,11 +6,13 @@ import Ecosystems from "../components/Ecosystems.astro";
 import Safety from "../components/Safety.astro";
 import GhostServers from "../components/GhostServers.astro";
 import Bento from "../components/Bento.astro";
-import Pricing from "../components/Pricing.astro";
+import Download from "../components/Download.astro";
+import TipJar from "../components/TipJar.astro";
 import LatestPosts from "../components/LatestPosts.astro";
 import Faq from "../components/Faq.astro";
 import FinalCta from "../components/FinalCta.astro";
-import { GITHUB_URL } from "../config";
+import { GITHUB_URL, DOWNLOADS } from "../config";
+import { faqs } from "../data/faq";
 
 const site = Astro.site!.href;
 const schema = [
@@ -20,25 +22,40 @@ const schema = [
     name: "Gigaflush",
     applicationCategory: "DeveloperApplication",
     operatingSystem: "macOS, Windows, Linux",
-    description: "Open-source tray app that finds and deletes node_modules, Rust target, Flutter build and other rebuildable developer folders to free disk space, and stops idle dev servers left running on localhost ports.",
+    applicationSubCategory: "Disk cleanup utility",
+    description: "Free, open-source tray app that finds and deletes node_modules, Rust target, Flutter build and other rebuildable developer folders to free disk space, and stops idle dev servers left running on localhost ports.",
     url: site,
-    downloadUrl: new URL("/#pricing", site).href,
+    image: new URL("/og/index.png", site).href,
+    screenshot: new URL("/og/index.png", site).href,
+    downloadUrl: [DOWNLOADS.mac, DOWNLOADS.windows, DOWNLOADS.appimage],
+    installUrl: new URL("/#download", site).href,
+    softwareRequirements: "macOS 11+, Windows 10/11 (x64), or Linux (x86_64)",
+    featureList: [
+      "Find and delete node_modules across every project",
+      "Clean Rust target, Flutter build and .dart_tool, Swift .build, Gradle .gradle and Maven target",
+      "Clear Python .pytest_cache, .mypy_cache and .ruff_cache",
+      "Review exact paths and rebuild steps before deletion",
+      "Stop idle dev servers left running on localhost ports",
+      "No telemetry, no account",
+    ],
     license: "https://www.gnu.org/licenses/gpl-3.0.html",
     codeRepository: GITHUB_URL,
-    offers: [
-      { "@type": "Offer", name: "macOS (signed)", price: "4.99", priceCurrency: "USD" },
-      { "@type": "Offer", name: "Windows (signed)", price: "4.99", priceCurrency: "USD" },
-      { "@type": "Offer", name: "Linux", price: "0", priceCurrency: "USD" },
-    ],
+    isAccessibleForFree: true,
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
   },
   { "@context": "https://schema.org", "@type": "Organization", name: "Gigaflush", url: site, logo: new URL("/apple-touch-icon.png", site).href, sameAs: [GITHUB_URL] },
-  { "@context": "https://schema.org", "@type": "WebSite", name: "Gigaflush", url: site },
+  { "@context": "https://schema.org", "@type": "WebSite", name: "Gigaflush", url: site, inLanguage: "en" },
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
+  },
 ];
 ---
 
 <Base
-  title="Gigaflush — delete node_modules, Rust target & build caches to free disk space"
-  description="Open-source menu-bar app for macOS, Windows and Linux. Find every node_modules, Rust target, Flutter build, Python and Gradle cache across your projects, reclaim gigabytes, and stop the idle dev servers your agents left running."
+  title="Gigaflush — Free node_modules and build cache cleaner"
+  description="Free, open-source menu-bar app for Mac, Windows and Linux. Find every node_modules, Rust target and build cache, reclaim gigabytes, and stop idle dev servers."
   schema={schema}
 >
   <main>
@@ -48,7 +65,8 @@ const schema = [
     <Safety />
     <GhostServers />
     <Bento />
-    <Pricing />
+    <Download />
+    <TipJar />
     <LatestPosts />
     <Faq />
     <FinalCta />

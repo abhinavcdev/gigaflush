@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.2.0] — 2026-11-06
 
 ### Added
 
@@ -31,10 +31,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `Gigaflush-*`.
 - **Licence is now GPL-3.0-or-later** (previously MIT; releases up to 0.1.1
   remain MIT). The Gigaflush name and logo are not covered by the licence.
-- Signed macOS and Windows builds are sold through Polar; Linux builds stay
-  free on GitHub Releases. The release workflow builds a universal macOS
-  `.dmg`, signs and notarizes it and signs the Windows installer when
-  credentials are configured, and keeps paid installers off the public release.
+- **Free on every platform.** macOS, Windows and Linux builds are all
+  published on GitHub Releases under stable names, and the website's download
+  buttons fetch the latest one directly. Paid builds and pricing are gone;
+  a tip jar replaces them. Builds are unsigned, and the site, README and
+  release notes explain the one-time first-launch prompt.
+- **Release pipeline.** Actions → Release → Run workflow bumps the version,
+  tags, builds all platforms (macOS `.dmg`, Windows `.exe`/`.msi`, Linux
+  `.AppImage`/`.deb`/`.rpm`) and publishes the release with checksums. A new
+  CI workflow runs the Rust tests, UI smoke test and site build on every PR.
+- **Mac-white light theme** in the app and on the website: macOS neutrals
+  (`#f5f5f7` window, white content, `#1d1d1f` text) replace the warm greys.
+- The update banner opens the site's download page on every platform, and the
+  About line links to the tip jar.
 - Landing page rebuilt with Astro: a desktop stage with the live panel,
   scroll-driven "how it works", an interactive ecosystem explorer, pricing,
   and Privacy, Terms, and Support pages. Hero rebuilt as a framed split
@@ -65,6 +74,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Cleanup motion: a sweep on the folder being removed, a "Removed" confirmation
   before its row collapses, a readout that counts down live, and a completion
   check. All of it is disabled under reduced motion.
+
+### Fixed
+
+- The panel's spring easing curves were missing semicolons, which silently
+  broke them and the stylesheet's `color-scheme` declaration.
 
 ## [0.1.1] — 2026-07-13
 

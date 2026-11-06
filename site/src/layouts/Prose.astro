@@ -2,13 +2,14 @@
 import Base from "./Base.astro";
 interface Props {
   title: string;
+  metaTitle?: string;
   description: string;
   updated?: string;
 }
-const { title, description, updated } = Astro.props;
+const { title, metaTitle, description, updated } = Astro.props;
 ---
 
-<Base title={`${title} — Gigaflush`} description={description}>
+<Base title={metaTitle ?? `${title} — Gigaflush`} description={description}>
   <main class="frame">
     <div class="prose">
       <header data-reveal>

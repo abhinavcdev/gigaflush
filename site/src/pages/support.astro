@@ -1,17 +1,25 @@
 ---
 import Prose from "../layouts/Prose.astro";
-import { GITHUB_URL, POLAR, SUPPORT_EMAIL } from "../config";
+import { GITHUB_URL, SUPPORT_EMAIL } from "../config";
 ---
 
-<Prose title="Support" description="Get help with Gigaflush, downloads, and purchases.">
+<Prose title="Support" metaTitle="Gigaflush support: install help, bugs and FAQs" description="Get help with Gigaflush: get past the macOS “can’t verify developer” and Windows SmartScreen prompts, report bugs, and read answers to common questions.">
   <h2>Download a new version</h2>
-  <p>Bought a macOS or Windows build? Sign in to your <a href={POLAR.library}>Polar library</a> with your purchase email to download the latest version. Linux builds are on <a href={`${GITHUB_URL}/releases/latest`}>GitHub Releases</a>.</p>
+  <p>Get the latest build for any platform from the <a href="/#download">download section</a>, or browse every version on <a href={`${GITHUB_URL}/releases`}>GitHub Releases</a>. Install it over the old one; your settings carry over.</p>
+
+  <h2>It won't open</h2>
+  <ul>
+    <li><strong>macOS says it can't verify the developer.</strong> The app isn't signed by Apple. Open it once, then go to System Settings → Privacy &amp; Security and click <em>Open Anyway</em>. Or run <code>xattr -dr com.apple.quarantine /Applications/Gigaflush.app</code> in Terminal.</li>
+    <li><strong>macOS says the app is damaged.</strong> That's the same download flag; run the <code>xattr</code> command above.</li>
+    <li><strong>Windows SmartScreen blocks the installer.</strong> Click <em>More info</em>, then <em>Run anyway</em>.</li>
+    <li><strong>Linux: no tray icon.</strong> Install <code>libayatana-appindicator3-1</code>, and on GNOME the AppIndicator extension.</li>
+  </ul>
 
   <h2>Bugs and feature requests</h2>
   <p>Please <a href={`${GITHUB_URL}/issues/new`}>open an issue on GitHub</a> with your OS version, Gigaflush version (shown at the bottom of the "How it works" sheet), and what you expected to happen.</p>
 
-  <h2>Orders, refunds, and anything private</h2>
-  <p>Email <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a> with the email you used at checkout.</p>
+  <h2>Anything private</h2>
+  <p>Email <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.</p>
 
   <h2>Common questions</h2>
   <ul>

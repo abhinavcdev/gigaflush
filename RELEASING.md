@@ -1,94 +1,74 @@
 # Releasing Gigaflush
 
-Gigaflush is open source (GPL-3.0-or-later). The project is funded by selling
-signed, ready-to-run builds:
-
-| Platform | What's sold | Where it's delivered |
-|---|---|---|
-| macOS | Universal `.dmg`, Developer ID signed + notarized, $4.99 | Polar product "Gigaflush for macOS" |
-| Windows | Signed `.exe` installer, $4.99 | Polar product "Gigaflush for Windows" |
-| Linux | Free `.AppImage` / `.deb` | Public GitHub Release |
-
-One workflow ([.github/workflows/release.yml](.github/workflows/release.yml))
-runs on tag push. It builds all three platforms, publishes a public GitHub
-Release with the Linux files, and keeps the macOS and Windows installers as a
-private workflow artifact named `paid-installers-<tag>`.
+Gigaflush is free and open source (GPL-3.0-or-later). Every platform's build is
+published on GitHub Releases, and the website's download buttons link straight
+to the latest one.
 
 ## Cutting a release
 
+**From GitHub (recommended):** Actions → **Release** → **Run workflow**, enter
+a version such as `0.2.0`, and run it. The workflow:
+
+1. Bumps the version in `package.json`, `package-lock.json`,
+   `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` and `Cargo.lock`,
+   commits `release: v0.2.0` to the branch you ran it on, and tags `v0.2.0`.
+2. Builds macOS (universal `.dmg`), Windows x64 (`setup.exe` and `.msi`) and
+   Linux x86_64 (`.AppImage`, `.deb`, `.rpm`) in parallel.
+3. Publishes the GitHub Release with every file under a stable name, a
+   `SHA256SUMS.txt`, install notes, and auto-generated notes from merged PRs.
+
+Add a CHANGELOG entry before you run it. If the branch is protected, allow
+`github-actions[bot]` to push, or bump and tag by hand (below).
+
+**From your terminal:** bump `version` in `package.json` and
+`src-tauri/tauri.conf.json`, then:
+
 ```bash
-# 1. Bump the version in BOTH files (keep them in sync):
-#    src-tauri/tauri.conf.json  "version"
-#    package.json               "version"
-# 2. Add a CHANGELOG entry.
-# 3. Tag and push.
 git commit -am "release: v0.2.0"
 git tag v0.2.0
 git push && git push --tags
 ```
 
-When the workflow finishes:
+Pushing the tag starts the same build and publish jobs.
 
-1. Download `paid-installers-v0.2.0` from the run's **Summary** page.
-2. In Polar, open each product → **Benefits → File downloads** and upload the
-   new installer (`Gigaflush-macos-universal.dmg`, `Gigaflush-windows-x64-setup.exe`).
-   Existing customers see the new file in their Polar library.
-3. The apps check GitHub's latest release at most twice a day and show an
-   "update available" banner. Paid builds link to the Polar library, Linux
-   builds to the GitHub Release.
+## Download links
 
-Publish the GitHub Release only after the Polar files are updated, or buyers
-will see the banner before the download exists.
+The release job copies each build to a fixed name, so these URLs always
+serve the newest version (the site uses them in
+[site/src/config.ts](site/src/config.ts)):
 
-## Signing
-
-The workflow signs only when the secrets exist, and prints a warning
-otherwise. **Never sell an unsigned build.**
-
-### macOS (Developer ID + notarization)
-
-Requires an Apple Developer Program membership ($99/year).
-
-1. In Xcode or developer.apple.com, create a **Developer ID Application**
-   certificate. Export it with its private key as a `.p12`.
-2. Create an app-specific password at appleid.apple.com.
-3. Add these repository secrets:
-
-| Secret | Value |
+| File | URL |
 |---|---|
-| `APPLE_CERTIFICATE` | `base64 -i cert.p12` output |
-| `APPLE_CERTIFICATE_PASSWORD` | the `.p12` export password |
-| `APPLE_SIGNING_IDENTITY` | e.g. `Developer ID Application: Your Name (TEAMID)` |
-| `APPLE_ID` | your Apple ID email |
-| `APPLE_PASSWORD` | the app-specific password |
-| `APPLE_TEAM_ID` | your 10-character team ID |
+| macOS | `https://github.com/abhinavcdev/gigaflush/releases/latest/download/Gigaflush-macos-universal.dmg` |
+| Windows | `.../latest/download/Gigaflush-windows-x64-setup.exe` (and `Gigaflush-windows-x64.msi`) |
+| Linux | `.../latest/download/Gigaflush-linux-x86_64.AppImage`, `Gigaflush-linux-amd64.deb`, `Gigaflush-linux-x86_64.rpm` |
+| Checksums | `.../latest/download/SHA256SUMS.txt` |
 
-Tauri signs with the hardened runtime and notarizes automatically when these
-are set.
+The app checks GitHub's latest release at most twice a day and shows an
+"update available" banner that opens the site's download section.
 
-### Windows (Azure Artifact Signing)
+## Code signing
 
-SmartScreen warns on unsigned installers, and code-signing certificates now
-have to live in a hardware or cloud HSM. Azure Artifact Signing (formerly
-Azure Trusted Signing) is the cheapest route for an individual developer.
+The builds are not code-signed. The macOS app is ad-hoc signed
+(`"signingIdentity": "-"` in `tauri.conf.json`), which Apple Silicon needs to
+launch it at all; Gatekeeper still asks the user to approve it once. Windows
+SmartScreen shows a "More info → Run anyway" prompt. The site, README, release
+notes, and support page all explain both.
 
-1. Create an Artifact Signing account and certificate profile in Azure, and
-   complete identity validation.
-2. Create an app registration (service principal) and give it the signer role
-   on the certificate profile, following Microsoft's Artifact Signing setup guide.
-3. Add these secrets: `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`,
-   `AZURE_TENANT_ID`, `AZURE_SIGNING_ENDPOINT` (e.g.
-   `https://eus.codesigning.azure.net`), `AZURE_SIGNING_ACCOUNT`,
-   `AZURE_SIGNING_PROFILE`.
+If you later want prompt-free installs, Apple's Developer ID ($99/year) and
+Azure Artifact Signing are the usual routes; Tauri signs automatically once
+the `APPLE_*` environment variables or a Windows `signCommand` are set.
 
-The workflow installs `artifact-signing-cli` and passes it to Tauri as the
-`signCommand`.
+## CI
 
-## Landing page
+[.github/workflows/ci.yml](.github/workflows/ci.yml) runs on every push to
+`main` and every pull request: Rust tests, the Playwright UI smoke test, and
+the website build.
 
-[`site/`](site/) is an Astro project (Node ≥ 22.23.4). Links to GitHub and
-Polar live in [site/src/config.ts](site/src/config.ts). Set the Polar
-checkout links there once the products exist.
+## Website
+
+[`site/`](site/) is an Astro project (Node ≥ 22.23.4). Links to GitHub and the
+tip jar live in [site/src/config.ts](site/src/config.ts).
 
 ```bash
 npm install && npm --prefix site install
