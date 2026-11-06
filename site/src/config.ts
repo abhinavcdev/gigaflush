@@ -5,20 +5,20 @@ export const GITHUB_URL = `https://github.com/${GITHUB_REPO}`;
 export const RELEASES_URL = `${GITHUB_URL}/releases/latest`;
 export const DOWNLOAD_BASE = `${RELEASES_URL}/download`;
 
-// Polar checkout links for the paid, signed builds. Create one product per
-// platform in Polar (one-time price, "File downloads" benefit), then paste
-// each product's checkout link here.
-export const POLAR = {
-  mac: "https://buy.polar.sh/REPLACE_WITH_MAC_CHECKOUT_LINK",
-  windows: "https://buy.polar.sh/REPLACE_WITH_WINDOWS_CHECKOUT_LINK",
-  library: "https://polar.sh/gigaflush/portal",
-};
-
-export const PRICE = "$4.99";
-export const SUPPORT_EMAIL = "support@gigaflush.app";
-
-export const LINUX = {
+// Stable asset names. The release workflow copies every build to these names,
+// so /releases/latest/download/<name> always serves the newest version.
+export const DOWNLOADS = {
+  mac: `${DOWNLOAD_BASE}/Gigaflush-macos-universal.dmg`,
+  windows: `${DOWNLOAD_BASE}/Gigaflush-windows-x64-setup.exe`,
+  windowsMsi: `${DOWNLOAD_BASE}/Gigaflush-windows-x64.msi`,
   appimage: `${DOWNLOAD_BASE}/Gigaflush-linux-x86_64.AppImage`,
   deb: `${DOWNLOAD_BASE}/Gigaflush-linux-amd64.deb`,
+  rpm: `${DOWNLOAD_BASE}/Gigaflush-linux-x86_64.rpm`,
   sums: `${DOWNLOAD_BASE}/SHA256SUMS.txt`,
 };
+
+// The tip jar. GitHub Sponsors takes no fee on personal sponsorships; enable it
+// at https://github.com/sponsors, or point this at Ko-fi / Buy Me a Coffee.
+export const TIP_URL = "https://github.com/sponsors/abhinavcdev";
+
+export const SUPPORT_EMAIL = "support@gigaflush.com";

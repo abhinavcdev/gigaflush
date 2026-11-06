@@ -5,23 +5,23 @@
 
 .iso {
   --anatomy-page: var(--page);
-  --anatomy-card: #fdfcf9;
+  --anatomy-card: #ffffff;
   --anatomy-text: #57585a;
   --anatomy-strong: #1d1e1c;
   --anatomy-muted: #8b8c87;
-  --anatomy-paper: #fdfcf9;
+  --anatomy-paper: #ffffff;
   --anatomy-face: #ffffff;
   --anatomy-top: #ffffff;
-  --anatomy-shade-0: #dcdbd5;
-  --anatomy-shade-1: #e5e4de;
-  --anatomy-shade-2: #edece7;
-  --anatomy-shade-3: #f4f3ee;
+  --anatomy-shade-0: #dadade;
+  --anatomy-shade-1: #e3e3e7;
+  --anatomy-shade-2: #ececf0;
+  --anatomy-shade-3: #f4f4f7;
   --anatomy-lit-top: #ffffff;
-  --anatomy-lit-shade: #efeee9;
+  --anatomy-lit-shade: #efeff2;
   --anatomy-hi: #26272a;
   --anatomy-mid: #8a8b86;
   --anatomy-lo: #b5b6b0;
-  --anatomy-faint: #d5d5cf;
+  --anatomy-faint: #d4d4d9;
   --anatomy-lit: #000000;
   --anatomy-halo: #8a897f;
   --anatomy-halo-opacity: 0.3;

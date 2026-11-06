@@ -15,7 +15,7 @@ const block = (selector: string) => {
 };
 const LIGHT = block(".iso {");
 const DARK = `${LIGHT}${block(':root[data-theme="dark"] .iso {')}`;
-const PAGE = { light: "#faf9f6", dark: "#191b19" };
+const PAGE = { light: "#ffffff", dark: "#191b19" };
 
 export function getStaticPaths() {
   return names.flatMap((name) => ["light", "dark"].map((t) => ({ params: { file: `${name}-${t}` }, props: { name, t } })));

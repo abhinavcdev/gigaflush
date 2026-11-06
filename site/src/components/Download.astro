@@ -1,0 +1,418 @@
+---
+import Icon from "./Icon.astro";
+import { DOWNLOADS, GITHUB_URL, RELEASES_URL } from "../config";
+const clone = `git clone ${GITHUB_URL}.git && cd gigaflush && npm install && npm run tauri:build`;
+
+// Builds aren't signed by Apple or Microsoft, so each OS asks once before the
+// first launch. These are the exact steps, shown under each download.
+const plans = [
+  {
+    os: "mac",
+    name: "macOS",
+    icon: "ph:apple-logo",
+    req: "macOS 11 or later · Apple Silicon and Intel",
+    primary: { label: "Download for Mac", href: DOWNLOADS.mac, file: ".dmg" },
+    alt: [],
+    steps: [
+      "Open the .dmg and drag Gigaflush to Applications.",
+      "Open it once. When macOS says it can't verify the developer, go to System Settings → Privacy & Security and click Open Anyway.",
+    ],
+    cmd: "xattr -dr com.apple.quarantine /Applications/Gigaflush.app",
+    cmdNote: "Or clear the download flag from Terminal:",
+  },
+  {
+    os: "windows",
+    name: "Windows",
+    icon: "ph:windows-logo",
+    req: "Windows 10 and 11 · x64",
+    primary: { label: "Download for Windows", href: DOWNLOADS.windows, file: ".exe" },
+    alt: [{ label: ".msi", href: DOWNLOADS.windowsMsi }],
+    steps: [
+      "Run the installer.",
+      "If SmartScreen says “Windows protected your PC”, click More info, then Run anyway.",
+    ],
+  },
+  {
+    os: "linux",
+    name: "Linux",
+    icon: "ph:linux-logo",
+    req: "x86_64 · Debian, Ubuntu, Fedora and more",
+    primary: { label: "Download AppImage", href: DOWNLOADS.appimage, file: ".AppImage" },
+    alt: [
+      { label: ".deb", href: DOWNLOADS.deb },
+      { label: ".rpm", href: DOWNLOADS.rpm },
+    ],
+    steps: ["Make the AppImage executable, then run it. Or install the .deb or .rpm with your package manager."],
+    cmd: "chmod +x Gigaflush-linux-x86_64.AppImage && ./Gigaflush-linux-x86_64.AppImage",
+  },
+];
+---
+
+<section class="section" id="download">
+  <div class="section-head" data-reveal>
+    <h2>Free for everyone. <span class="dim">Download it.</span></h2>
+    <p>Every build, on every platform, straight from GitHub Releases. No account, no license key, no trial.</p>
+    <p class="release" data-release>
+      <span class="pill-dot" aria-hidden="true"></span>
+      <span data-release-label>Latest release</span>
+      <a href={RELEASES_URL}>Release notes</a>
+      <a href={DOWNLOADS.sums}>SHA-256 checksums</a>
+    </p>
+  </div>
+
+  <div class="plans" data-plans>
+    {
+      plans.map((p, i) => (
+        <article class="plan" data-os={p.os} data-reveal style={`--d:${i}`}>
+          <div class="plan-head">
+            <Icon name={p.icon} size={22} />
+            <h3>{p.name}</h3>
+            <span class="badge" hidden>Your system</span>
+          </div>
+          <p class="req">{p.req}</p>
+
+          <div class="get">
+            <a class="key key-primary dl" data-press href={p.primary.href} download>
+              <Icon name="ph:download-simple-bold" size={16} />
+              {p.primary.label}
+            </a>
+            {p.alt.length > 0 && (
+              <p class="alt">
+                Also as {p.alt.map((a, j) => (<>{j > 0 && " or "}<a href={a.href} download>{a.label}</a></>))}
+              </p>
+            )}
+          </div>
+
+          <details class="first-run">
+            <summary>
+              <Icon name="ph:shield-check" size={15} />
+              First launch
+              <span class="chev" aria-hidden="true" />
+            </summary>
+            <ol>
+              {p.steps.map((s) => <li>{s}</li>)}
+            </ol>
+            {p.cmd && (
+              <>
+                {p.cmdNote && <p class="cmd-note">{p.cmdNote}</p>}
+                <div class="cmd">
+                  <code>{p.cmd}</code>
+                  <button data-copy={p.cmd} aria-label={`Copy ${p.name} command`}>Copy</button>
+                </div>
+              </>
+            )}
+          </details>
+        </article>
+      ))
+    }
+  </div>
+
+  <p class="why" data-reveal>
+    <Icon name="ph:info" size={15} />
+    <span>The builds aren't code-signed, so macOS and Windows ask once before the first launch. They're built in public by <a href={`${GITHUB_URL}/actions`}>GitHub Actions</a> from the tagged source, and every release has checksums.</span>
+  </p>
+
+  <div class="source card" data-reveal>
+    <div>
+      <b>Prefer to build it yourself?</b>
+      <p>Everything is on GitHub under GPL-3.0. You need Node, Rust, and the Tauri prerequisites.</p>
+    </div>
+    <div class="cmd dark">
+      <code>{clone}</code>
+      <button data-copy={clone} aria-label="Copy build commands">Copy</button>
+    </div>
+  </div>
+</section>
+
+<script>
+  const ua = navigator.userAgent;
+  const os = /iPhone|iPad|Android/i.test(ua) ? null : /Mac/i.test(ua) ? "mac" : /Win/i.test(ua) ? "windows" : /Linux|X11|CrOS/i.test(ua) ? "linux" : null;
+  if (os) {
+    const plan = document.querySelector<HTMLElement>(`.plan[data-os="${os}"]`)!;
+    plan.classList.add("is-detected");
+    plan.querySelector<HTMLElement>(".badge")!.hidden = false;
+  }
+
+  document.querySelectorAll<HTMLButtonElement>("[data-copy]").forEach((btn) =>
+    btn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(btn.dataset.copy!);
+        btn.textContent = "Copied";
+        setTimeout(() => (btn.textContent = "Copy"), 1600);
+      } catch {}
+    }),
+  );
+
+  // Version and date of the latest release. The links work without it.
+  (async () => {
+    try {
+      const res = await fetch("https://api.github.com/repos/abhinavcdev/gigaflush/releases/latest", {
+        headers: { Accept: "application/vnd.github+json" },
+      });
+      if (!res.ok) return;
+      const { tag_name, published_at } = await res.json();
+      const date = new Date(published_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+      document.querySelector("[data-release-label]")!.textContent = `Version ${tag_name.replace(/^v/, "")} · ${date}`;
+    } catch {}
+  })();
+</script>
+
+<style>
+  .release {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 18px;
+    margin-top: 22px !important;
+    font-size: 14px !important;
+    color: var(--muted);
+  }
+  .release .pill-dot {
+    margin-right: -8px;
+  }
+  .release a {
+    color: var(--text);
+    text-decoration: underline;
+    text-decoration-color: var(--line-strong);
+    text-underline-offset: 3px;
+  }
+  .release a:hover {
+    text-decoration-color: currentColor;
+  }
+
+  .plans {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    align-items: start;
+  }
+  .plan {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 28px;
+    border-radius: var(--radius);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    transition:
+      border-color 300ms,
+      box-shadow 500ms var(--ease);
+  }
+  .plan:hover {
+    border-color: var(--line-strong);
+  }
+  .plan.is-detected {
+    background: var(--content);
+    border-color: var(--text);
+    box-shadow: var(--panel-shadow);
+  }
+  .plan-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h3 {
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: -0.022em;
+  }
+  .badge {
+    margin-left: auto;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--selected);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .req {
+    margin-top: 6px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .get {
+    margin-top: 28px;
+  }
+  .dl {
+    width: 100%;
+  }
+  .plan:not(.is-detected) .key-primary {
+    background: var(--control);
+    color: var(--text);
+  }
+  .plan:not(.is-detected) .key-primary:hover {
+    background: var(--hover);
+  }
+  .alt {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+  }
+  .alt a {
+    color: var(--text);
+    font-family: var(--mono);
+    text-decoration: underline;
+    text-decoration-color: var(--line-strong);
+    text-underline-offset: 3px;
+  }
+
+  .first-run {
+    margin-top: 20px;
+    border-top: 1px solid var(--line);
+  }
+  .first-run::details-content {
+    block-size: 0;
+    overflow: hidden;
+    transition:
+      block-size 400ms var(--ease),
+      content-visibility 400ms allow-discrete;
+  }
+  .first-run[open]::details-content {
+    block-size: auto;
+  }
+  summary {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding-top: 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    list-style: none;
+    transition: color 200ms;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  summary:hover {
+    color: var(--text);
+  }
+  .chev {
+    margin-left: auto;
+    width: 7px;
+    height: 7px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: translateY(-2px) rotate(45deg);
+    transition: transform 300ms var(--ease);
+  }
+  .first-run[open] .chev {
+    transform: translateY(1px) rotate(-135deg);
+  }
+  ol {
+    display: grid;
+    gap: 8px;
+    margin: 14px 0 0;
+    padding-left: 20px;
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--muted);
+  }
+  ol li::marker {
+    color: var(--text);
+    font-weight: 600;
+  }
+  .cmd-note {
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .cmd {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 6px 6px 6px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--control);
+  }
+  .cmd code {
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+    white-space: nowrap;
+    font-size: 12px;
+    scrollbar-width: none;
+  }
+  .cmd button {
+    flex-shrink: 0;
+    height: 28px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--content);
+    color: var(--text);
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .cmd button:hover {
+    background: var(--hover);
+  }
+
+  .why {
+    display: flex;
+    gap: 8px;
+    margin-top: 24px;
+    max-width: 60em;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .why :global(svg) {
+    margin-top: 3px;
+  }
+  .why a {
+    color: var(--text);
+    text-decoration: underline;
+    text-decoration-color: var(--line-strong);
+    text-underline-offset: 3px;
+  }
+
+  .source {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-top: 24px;
+    padding: 22px 24px;
+  }
+  .source > div:first-child {
+    flex: 1;
+    min-width: 0;
+  }
+  .source b {
+    font-weight: 600;
+  }
+  .source p {
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 2px;
+  }
+  .cmd.dark {
+    flex: 1.4;
+    min-width: 0;
+    margin: 0;
+    padding: 8px 8px 8px 18px;
+    background: #1d1d1f;
+    color: #f5f5f7;
+  }
+  .cmd.dark button {
+    height: 30px;
+    padding: 0 14px;
+    background: #ffffff1a;
+    color: #e8e8ed;
+  }
+  .cmd.dark button:hover {
+    background: #ffffff29;
+  }
+
+  @media (max-width: 960px) {
+    .plans {
+      grid-template-columns: 1fr;
+    }
+    .source {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+</style>

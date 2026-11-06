@@ -1,0 +1,83 @@
+---
+import Icon from "./Icon.astro";
+import { TIP_URL, GITHUB_URL } from "../config";
+---
+
+<section class="section tip" id="tip">
+  <div class="inner card" data-reveal>
+    <div class="jar" aria-hidden="true">
+      <Icon name="ph:coffee" size={30} />
+    </div>
+    <div class="copy">
+      <h2>Saved you a few gigabytes?</h2>
+      <p>Gigaflush is free and stays free. If it earned a spot in your menu bar, a tip helps pay for the next ecosystem, the Windows server view, and the time spent on bug reports.</p>
+    </div>
+    <div class="actions">
+      <a href={TIP_URL} class="key key-primary" data-press>
+        <Icon name="ph:heart-fill" size={15} class="heart" />
+        Leave a tip
+      </a>
+      <a href={GITHUB_URL} class="more-link">Or star it on GitHub</a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .tip {
+    padding-block: 64px;
+  }
+  .inner {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 28px;
+    padding: 32px 36px;
+    background:
+      radial-gradient(70% 140% at 0% 0%, var(--glow), transparent),
+      var(--surface);
+  }
+  .jar {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    background: var(--content);
+    color: var(--text);
+    box-shadow: var(--card-shadow), inset 0 0 0 1px var(--line);
+  }
+  h2 {
+    font-family: var(--display);
+    font-size: clamp(22px, 2.4vw, 28px);
+    font-weight: 600;
+    letter-spacing: -0.022em;
+  }
+  p {
+    margin-top: 6px;
+    max-width: 40em;
+    font-size: 15px;
+    color: var(--muted);
+    text-wrap: pretty;
+  }
+  .actions {
+    display: grid;
+    justify-items: center;
+    gap: 12px;
+  }
+  .actions .more-link {
+    font-size: 14px;
+  }
+  .key :global(.heart) {
+    color: #ff375f;
+  }
+  @media (max-width: 860px) {
+    .inner {
+      grid-template-columns: 1fr;
+      justify-items: start;
+      padding: 28px 24px;
+    }
+    .actions {
+      justify-items: start;
+    }
+  }
+</style>

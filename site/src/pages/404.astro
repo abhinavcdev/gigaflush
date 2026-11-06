@@ -1,0 +1,75 @@
+---
+import Base from "../layouts/Base.astro";
+import { guides } from "../data/cleanup";
+---
+
+<Base title="Page not found" description="This page doesn't exist. Find cleanup guides, the blog, or download Gigaflush." noindex>
+  <main class="frame">
+    <section class="nf">
+      <p class="mono-label" data-reveal>404</p>
+      <h1 data-reveal style="--d:1">This folder was already flushed.</h1>
+      <p class="lede" data-reveal style="--d:2">The page you're looking for doesn't exist or has moved.</p>
+      <div class="ctas" data-reveal style="--d:3">
+        <a href="/" class="key key-primary" data-press>Back to home</a>
+        <a href="/#download" class="key key-ghost" data-press>Download Gigaflush</a>
+      </div>
+      <nav class="guides" aria-label="Cleanup guides" data-reveal style="--d:4">
+        <p class="mono-label">Popular guides</p>
+        <ul>
+          {guides.map((g) => (
+            <li><a href={`/clean/${g.slug}`}>{g.h1}</a></li>
+          ))}
+        </ul>
+      </nav>
+    </section>
+  </main>
+</Base>
+
+<style>
+  .nf {
+    max-width: 760px;
+    padding: 120px 64px 128px;
+  }
+  h1 {
+    margin-top: 14px;
+    font-family: var(--display);
+    font-size: clamp(36px, 5vw, 60px);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    text-wrap: balance;
+  }
+  .lede {
+    margin-top: 18px;
+    font-size: 19px;
+    color: var(--muted);
+  }
+  .ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 32px;
+  }
+  .guides {
+    margin-top: 64px;
+  }
+  ul {
+    list-style: none;
+    display: grid;
+    gap: 10px;
+    margin-top: 14px;
+  }
+  ul a {
+    text-decoration: underline;
+    text-decoration-color: var(--line-strong);
+    text-underline-offset: 3px;
+  }
+  ul a:hover {
+    text-decoration-color: currentColor;
+  }
+  @media (max-width: 760px) {
+    .nf {
+      padding: 72px 20px 96px;
+    }
+  }
+</style>

@@ -1,30 +1,90 @@
-# Release pipeline. Push a tag like v0.2.0 and this:
+# Release pipeline. Two ways to start it:
 #
-#   1. Builds macOS (universal), Windows x64, and Linux x86_64.
-#   2. Signs + notarizes macOS and signs Windows when the secrets below exist
-#      (unsigned/ad-hoc otherwise, so the pipeline still runs before you
-#      have certificates).
-#   3. Publishes a public GitHub Release with the free Linux builds and
-#      stable-named copies for the landing page:
-#        https://github.com/<owner>/<repo>/releases/latest/download/Gigaflush-linux-x86_64.AppImage
-#   4. Keeps the paid macOS/Windows installers as private workflow artifacts
-#      ("paid-installers"), which you upload to the Polar products.
+#   • Actions → Release → Run workflow, and type a version (e.g. 0.2.0). The
+#     workflow bumps the version in package.json, tauri.conf.json and
+#     Cargo.toml, commits, tags v0.2.0, and releases from that tag.
+#   • Or bump the versions yourself and push a tag: git tag v0.2.0 && git push --tags
 #
-# macOS secrets:   APPLE_CERTIFICATE (base64 .p12), APPLE_CERTIFICATE_PASSWORD,
-#                  APPLE_SIGNING_IDENTITY, APPLE_ID, APPLE_PASSWORD (app-specific),
-#                  APPLE_TEAM_ID
-# Windows secrets: AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID,
-#                  AZURE_SIGNING_ENDPOINT, AZURE_SIGNING_ACCOUNT,
-#                  AZURE_SIGNING_PROFILE   (Azure Artifact Signing)
+# It builds macOS (universal), Windows x64 and Linux x86_64, then publishes a
+# GitHub Release with every installer under a stable name, so the website's
+# buttons always download the newest build:
+#   https://github.com/<owner>/<repo>/releases/latest/download/Gigaflush-macos-universal.dmg
+#
+# Builds are not code-signed (macOS is ad-hoc signed via tauri.conf.json).
+# The site's download section explains the one-time first-launch prompt.
 name: Release
 
 on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, without the v (e.g. 0.2.0)"
+        required: true
+        type: string
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
+  prepare:
+    name: Prepare version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bump version, commit and tag
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          VERSION="${VERSION#v}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "::error::'$VERSION' is not a semantic version like 0.2.0"; exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null; then
+            echo "::error::Tag v$VERSION already exists"; exit 1
+          fi
+          npm version "$VERSION" --no-git-tag-version --allow-same-version
+          node -e '
+            const fs = require("fs");
+            const v = process.argv[1];
+            const conf = "src-tauri/tauri.conf.json";
+            const json = JSON.parse(fs.readFileSync(conf, "utf8"));
+            json.version = v;
+            fs.writeFileSync(conf, JSON.stringify(json, null, 2) + "\n");
+            const bump = (file, re) => fs.writeFileSync(file, fs.readFileSync(file, "utf8").replace(re, `$1"${v}"`));
+            bump("src-tauri/Cargo.toml", /^(version = )"[^"]*"/m);
+            bump("src-tauri/Cargo.lock", /(name = "gigaflush"\nversion = )"[^"]*"/);
+          ' "$VERSION"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "release: v$VERSION"
+          git tag "v$VERSION"
+          git push origin HEAD "v$VERSION"
+
+      - name: Resolve tag
+        id: tag
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=v${VERSION#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
   build:
+    name: Build (${{ matrix.name }})
+    needs: prepare
     strategy:
       fail-fast: false
       matrix:
@@ -44,6 +104,8 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.tag }}
 
       - uses: actions/setup-node@v4
         with:
@@ -71,50 +133,8 @@ jobs:
             libssl-dev \
             patchelf \
             build-essential \
-            file
-
-      # Only export signing variables that are actually set: Tauri treats an
-      # empty APPLE_CERTIFICATE as "sign with this" and fails.
-      - name: Configure macOS signing
-        if: matrix.name == 'macos'
-        shell: bash
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          for v in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
-            if [ -n "${!v}" ]; then echo "$v=${!v}" >> "$GITHUB_ENV"; fi
-          done
-          [ -n "$APPLE_CERTIFICATE" ] || echo "::warning::No Apple certificate: macOS build is ad-hoc signed, not notarized. Do not sell it."
-
-      - name: Configure Windows signing
-        if: matrix.name == 'windows'
-        shell: bash
-        env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ENDPOINT: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
-          ACCOUNT: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
-          PROFILE: ${{ secrets.AZURE_SIGNING_PROFILE }}
-        run: |
-          if [ -z "$AZURE_CLIENT_ID" ]; then
-            echo "::warning::No Azure signing secrets: Windows installer is unsigned. Do not sell it."
-            exit 0
-          fi
-          cargo install artifact-signing-cli --locked
-          {
-            echo "AZURE_CLIENT_ID=$AZURE_CLIENT_ID"
-            echo "AZURE_CLIENT_SECRET=$AZURE_CLIENT_SECRET"
-            echo "AZURE_TENANT_ID=$AZURE_TENANT_ID"
-          } >> "$GITHUB_ENV"
-          printf '{"bundle":{"windows":{"signCommand":"artifact-signing-cli -e %s -a %s -c %s -d Gigaflush %%1"}}}' \
-            "$ENDPOINT" "$ACCOUNT" "$PROFILE" > src-tauri/tauri.signing.conf.json
-          echo "SIGNING_ARGS=--config src-tauri/tauri.signing.conf.json" >> "$GITHUB_ENV"
+            file \
+            rpm
 
       - run: npm ci
 
@@ -122,7 +142,7 @@ jobs:
         id: tauri
         uses: tauri-apps/tauri-action@v0
         with:
-          args: ${{ matrix.args }} ${{ env.SIGNING_ARGS }}
+          args: ${{ matrix.args }}
 
       - uses: actions/upload-artifact@v4
         with:
@@ -132,12 +152,13 @@ jobs:
 
   publish:
     name: Publish release
-    needs: build
+    needs: [prepare, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TAG: ${{ needs.prepare.outputs.tag }}
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -146,37 +167,54 @@ jobs:
       - name: Name artifacts
         run: |
           set -euo pipefail
-          mkdir -p public paid
+          mkdir -p public
           # Glob-based so small Tauri naming changes don't break the
           # pipeline; each entry maps whatever was built to a fixed name.
-          stable() { # stable <dir> <glob> <name>
+          stable() { # stable <platform> <glob> <name>
             local match
             match=$(find "assets/bundle-$1" -name "$2" | head -1)
             if [ -n "$match" ]; then
-              cp "$match" "$4/$3"
+              cp "$match" "public/$3"
               echo "$3  <-  $match"
             else
-              echo "::warning::no artifact matched $2 (wanted $3)"
+              echo "::error::no artifact matched $2 (wanted $3)"
+              return 1
             fi
           }
-          stable linux   "*.AppImage" Gigaflush-linux-x86_64.AppImage public
-          stable linux   "*.deb"      Gigaflush-linux-amd64.deb       public
-          stable macos   "*.dmg"      Gigaflush-macos-universal.dmg   paid
-          stable windows "*setup.exe" Gigaflush-windows-x64-setup.exe paid
+          stable macos   "*.dmg"      Gigaflush-macos-universal.dmg
+          stable windows "*setup.exe" Gigaflush-windows-x64-setup.exe
+          stable windows "*.msi"      Gigaflush-windows-x64.msi
+          stable linux   "*.AppImage" Gigaflush-linux-x86_64.AppImage
+          stable linux   "*.deb"      Gigaflush-linux-amd64.deb
+          stable linux   "*.rpm"      Gigaflush-linux-x86_64.rpm
           (cd public && sha256sum Gigaflush-* > SHA256SUMS.txt)
-          (cd paid && sha256sum Gigaflush-* > SHA256SUMS.txt)
+          cat public/SHA256SUMS.txt
 
-      - name: Create GitHub Release (Linux only)
+      - name: Write release notes
         run: |
-          gh release create "${GITHUB_REF_NAME}" public/* \
-            --repo "${GITHUB_REPOSITORY}" \
-            --title "Gigaflush ${GITHUB_REF_NAME}" \
-            --notes "Linux builds are attached below and free. Signed macOS and Windows builds are available at https://gigaflush.app/#pricing — existing buyers can download this version from their Polar library. Or build from source; see the README." \
-            || gh release upload "${GITHUB_REF_NAME}" public/* --repo "${GITHUB_REPOSITORY}" --clobber
+          cat > notes.md <<'EOF'
+          Free for every platform. Download the file for your system below, or use the buttons on [gigaflush.com](https://gigaflush.com/#download).
 
-      - name: Keep paid installers private
-        uses: actions/upload-artifact@v4
-        with:
-          name: paid-installers-${{ github.ref_name }}
-          path: paid/*
-          retention-days: 90
+          | Platform | File |
+          |---|---|
+          | macOS 11+ (Apple Silicon and Intel) | `Gigaflush-macos-universal.dmg` |
+          | Windows 10/11 x64 | `Gigaflush-windows-x64-setup.exe` or `.msi` |
+          | Linux x86_64 | `.AppImage`, `.deb` or `.rpm` |
+
+          **First launch.** These builds aren't code-signed, so the OS asks once:
+          - **macOS:** open the app, then System Settings → Privacy & Security → **Open Anyway**. Or run `xattr -dr com.apple.quarantine /Applications/Gigaflush.app`.
+          - **Windows:** on the SmartScreen prompt, click **More info → Run anyway**.
+          - **Linux:** `chmod +x Gigaflush-linux-x86_64.AppImage`, then run it.
+
+          Verify downloads with `SHA256SUMS.txt`. If Gigaflush saved you some space, there's a [tip jar](https://gigaflush.com/#tip).
+          EOF
+
+      - name: Create GitHub Release
+        run: |
+          gh release create "$TAG" public/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Gigaflush ${TAG#v}" \
+            --notes-file notes.md \
+            --generate-notes \
+            --verify-tag \
+            || gh release upload "$TAG" public/* --repo "$GITHUB_REPOSITORY" --clobber

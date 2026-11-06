@@ -1,7 +1,7 @@
 ---
 import AppDemo from "./AppDemo.astro";
 import Icon from "./Icon.astro";
-import { GITHUB_URL, PRICE } from "../config";
+import { GITHUB_URL, DOWNLOADS } from "../config";
 
 // Mono logos at rest (Devicon), brand color on hover (Iconify "logos").
 // Rust and Gradle brand marks are near-black, so they brighten instead.
@@ -17,7 +17,7 @@ const logos = [
 ];
 ---
 
-<section class="hero frame" id="top">
+<section class="hero frame" id="top" data-downloads={JSON.stringify(DOWNLOADS)}>
   <div class="grid">
     <div class="left">
       <span class="cross" style="top:-7px; right:-7px"></span>
@@ -30,14 +30,14 @@ const logos = [
           Find the dependencies and build files eating your disk, and the dev servers your agents forgot. Review everything. Keep your code.
         </p>
         <div class="ctas enter" style="--t:640ms">
-          <a href="#pricing" class="key key-primary" data-press>
-            <span data-hero-label>Get Gigaflush</span>
+          <a href="#download" class="key key-primary" data-press data-hero-cta>
+            <span data-hero-label>Download free</span>
             <Icon name="ph:arrow-right" size={16} class="arrow" />
           </a>
           <a href="#how" class="more-link">See how it works</a>
         </div>
         <p class="note enter" style="--t:760ms">
-          Free and open source on <a href={GITHUB_URL}>GitHub</a>. Signed builds {PRICE}. Linux is free.
+          Free and open source on <a href={GITHUB_URL}>GitHub</a>. macOS, Windows and Linux.
         </p>
       </div>
 
@@ -89,14 +89,24 @@ const logos = [
   const tray = stage.querySelector<HTMLButtonElement>("[data-tray]")!;
   const hint = stage.querySelector<HTMLElement>("[data-hint]")!;
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const downloads = JSON.parse(document.getElementById("top")!.dataset.downloads!);
 
-  // Platform-aware CTA.
+  // Platform-aware CTA: on a desktop OS the button downloads the latest build
+  // directly; elsewhere it scrolls to the download section.
   const ua = navigator.userAgent;
   const os = /iPhone|iPad|Android/i.test(ua) ? null : /Mac/i.test(ua) ? "mac" : /Win/i.test(ua) ? "windows" : /Linux|X11|CrOS/i.test(ua) ? "linux" : null;
-  const label = document.querySelector("[data-hero-label]")!;
-  if (os === "mac") label.textContent = "Get it for Mac";
-  if (os === "windows") label.textContent = "Get it for Windows";
-  if (os === "linux") label.textContent = "Download for Linux";
+  const cta = document.querySelector<HTMLAnchorElement>("[data-hero-cta]")!;
+  const label = cta.querySelector("[data-hero-label]")!;
+  const direct = { mac: ["Download for Mac", downloads.mac], windows: ["Download for Windows", downloads.windows], linux: ["Download for Linux", downloads.appimage] } as const;
+  if (os) {
+    [label.textContent, cta.href] = direct[os];
+    cta.setAttribute("download", "");
+    // Show the first-launch steps for this OS after the download starts.
+    cta.addEventListener("click", () => setTimeout(() => {
+      document.getElementById("download")?.scrollIntoView();
+      document.querySelector<HTMLDetailsElement>(`.plan[data-os="${os}"] .first-run`)?.setAttribute("open", "");
+    }, 400));
+  }
 
   // Clock.
   const tick = () => {
@@ -418,8 +428,8 @@ const logos = [
 
   /* Ink is the landscape, paper is the sky. */
   .right {
-    --dither-ink: #b7b9ae;
-    --dither-bg: #eeeee7;
+    --dither-ink: #d1d1d6;
+    --dither-bg: #fafafc;
     position: relative;
     overflow: hidden;
   }
