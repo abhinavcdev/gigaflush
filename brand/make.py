@@ -1,0 +1,132 @@
+# Gigaflush brand assets: the "g." mark.
+#
+#   python3 brand/make.py      (from the repo root)
+#
+# One source for every logo file in the app and on the site. The mark is a
+# bold lowercase g with a square full stop. Its bowl, the "o" of the g, is a
+# solid blue ring: the part of the disk Gigaflush frees. The stem and
+# descender are in the ink colour; the stop shares the blue.
+#
+# Writes the SVG sources; PNG/ICO/ICNS files are rendered from them by
+# brand/render.mjs (run it next), then `npx tauri icon brand/app-icon-1024.png`.
+import os
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+THEME = {
+    "dark": {"from": "#232321", "to": "#121211", "edge": ("#ffffff", 0.07), "ink": "#f2f2ec", "blue": "#4a9dff"},
+    "light": {"from": "#ffffff", "to": "#f2f2f0", "edge": ("#000000", 0.07), "ink": "#1d1d1b", "blue": "#2f7cf6"},
+}
+
+# Glyph geometry on a 1024 grid, before fitting into the icon tile.
+CX, CY, R, W = 404, 470, 136, 118  # bowl centre, centre-line radius, stroke weight
+STEM_X = CX + R  # the stem's centre-line runs down the bowl's right edge
+TOP = CY - R - W / 2  # x-height
+DESC_Y, DESC_R, TAIL_X = 742, 118, 300  # where the descender turns, its radius, tail end
+STOP = (STEM_X + W / 2 + 70, CY + R + W / 2 - 88, 88)  # square full stop on the baseline: x, y, size
+STEM = (
+    f"M{STEM_X} {TOP:.1f} L{STEM_X} {DESC_Y} "
+    f"Q{STEM_X} {DESC_Y + DESC_R} {STEM_X - DESC_R} {DESC_Y + DESC_R} L{TAIL_X} {DESC_Y + DESC_R}"
+)
+# Fit the letter and its stop inside the app-icon tile (100–924), optically
+# centred: the descender pulls the group a little below the middle.
+FIT = 'transform="translate(512 568) scale(0.8) translate(-483 -597)"'
+
+
+def glyph(ink, blue, weight=W, stop_scale=1.0):
+    x, y, s = STOP
+    s2 = s * stop_scale
+    return (
+        f"<g {FIT}>"
+        f'<circle cx="{CX}" cy="{CY}" r="{R}" fill="none" stroke="{blue}" stroke-width="{weight}"/>'
+        f'<path d="{STEM}" fill="none" stroke="{ink}" stroke-width="{weight}" stroke-linejoin="round"/>'
+        f'<rect x="{x:.1f}" y="{y + s - s2:.1f}" width="{s2:.1f}" height="{s2:.1f}" rx="6" fill="{blue}"/>'
+        "</g>"
+    )
+
+
+def mark(theme, uid=None):
+    t = THEME[theme]
+    return glyph(t["ink"], t["blue"])
+
+
+def tile(theme, uid):
+    t = THEME[theme]
+    edge, edge_o = t["edge"]
+    return (
+        f'<defs><linearGradient id="tile-{uid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{t["from"]}"/><stop offset="1" stop-color="{t["to"]}"/></linearGradient></defs>'
+        f'<rect x="100" y="100" width="824" height="824" rx="186" fill="url(#tile-{uid})"/>'
+        f'<rect x="100.5" y="100.5" width="823" height="823" rx="185.5" fill="none" stroke="{edge}" stroke-opacity="{edge_o}"/>'
+    )
+
+
+def tray_shapes(color="#000"):
+    """One-colour menu-bar mark: slightly heavier so it holds at 18 px."""
+    return glyph(color, color, W + 12, 1.1)
+
+
+ICON_VB = "0 0 1024 1024"
+MARK_VB = "232 288 560 560"  # square crop around the bare mark
+TRAY_VB = "212 268 600 600"
+
+
+def svg(body, vb, size=None, extra=""):
+    wh = f' width="{size}" height="{size}"' if size else ""
+    return f'<svg xmlns="http://www.w3.org/2000/svg"{wh} viewBox="{vb}"{extra}>{body}</svg>\n'
+
+
+def write(rel, text):
+    path = os.path.join(ROOT, rel)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as fh:
+        fh.write(text)
+    print("wrote", rel)
+
+
+icon_dark = svg(tile("dark", "d") + mark("dark"), ICON_VB, 1024)
+icon_light = svg(tile("light", "l") + mark("light"), ICON_VB, 1024)
+mark_dark = svg(mark("dark"), MARK_VB, 512)  # for dark backgrounds
+mark_light = svg(mark("light"), MARK_VB, 512)  # for light backgrounds
+tray = svg(tray_shapes(), TRAY_VB, 1024)
+
+# Favicon: the tile follows the browser's colour scheme.
+fav_light = f'<g class="l">{tile("light", "fl")}{mark("light")}</g>'
+fav_dark = f'<g class="d">{tile("dark", "fd")}{mark("dark")}</g>'
+favicon = svg(
+    "<style>.d{display:none}@media (prefers-color-scheme:dark){.l{display:none}.d{display:inline}}</style>" + fav_light + fav_dark,
+    "100 100 824 824",
+)
+
+for rel, text in [
+    ("brand/app-icon.svg", icon_dark),
+    ("brand/app-icon-light.svg", icon_light),
+    ("brand/mark-dark.svg", mark_dark),
+    ("brand/mark-light.svg", mark_light),
+    ("brand/tray.svg", tray),
+    # The app's own copies (titlebar and onboarding marks).
+    ("src/brand/app-icon.svg", icon_dark),
+    ("src/brand/app-icon-light.svg", icon_light),
+    # The site's copies.
+    ("site/public/brand/app-icon.svg", icon_dark),
+    ("site/public/brand/app-icon-light.svg", icon_light),
+    ("site/public/brand/mark-dark.svg", mark_dark),
+    ("site/public/brand/mark-light.svg", mark_light),
+    ("site/public/favicon.svg", favicon),
+]:
+    write(rel, text)
+
+# Inline one-colour mark for HTML that draws a menu bar (uses currentColor).
+write("site/src/components/TrayMark.astro", "---\n// Generated by brand/make.py: the one-colour menu-bar mark.\n---\n\n" + svg(tray_shapes("currentColor"), TRAY_VB, extra=' aria-hidden="true"'))
+
+# Board: dark and light icons, small sizes, and the bare marks.
+parts = []
+for k, theme in enumerate(("light", "dark")):
+    x0 = 40 + k * 820
+    page, ink = ("#ffffff", "#1d1d1f") if theme == "light" else ("#1c1c1e", "#f5f5f7")
+    parts.append(f'<rect x="{x0}" y="40" width="800" height="360" rx="24" fill="{page}"/>')
+    parts.append(f'<svg x="{x0 + 30}" y="70" width="300" height="300" viewBox="{ICON_VB}">{tile(theme, "b" + theme)}{mark(theme)}</svg>')
+    for size, dx in ((96, 0), (48, 120), (32, 186), (16, 236)):
+        parts.append(f'<svg x="{x0 + 360 + dx}" y="{100 + (96 - size) / 2}" width="{size}" height="{size}" viewBox="{ICON_VB}">{tile(theme, f"s{size}{theme}")}{mark(theme)}</svg>')
+    parts.append(f'<svg x="{x0 + 352}" y="236" width="96" height="96" viewBox="{MARK_VB}">{mark(theme)}</svg>')
+    parts.append(f'<text x="{x0 + 452}" y="300" font-family="Helvetica" font-weight="700" font-size="46" letter-spacing="-1.2" fill="{ink}">Gigaflush</text>')
+write("brand/board.svg", svg(f'<rect width="100%" height="100%" fill="#f5f5f7"/>{"".join(parts)}', "0 0 1680 440", extra=' width="1680" height="440"'))

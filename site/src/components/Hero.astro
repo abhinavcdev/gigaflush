@@ -1,6 +1,7 @@
 ---
 import AppDemo from "./AppDemo.astro";
 import Icon from "./Icon.astro";
+import TrayMark from "./TrayMark.astro";
 import { GITHUB_URL, DOWNLOADS } from "../config";
 
 // Mono logos at rest (Devicon), brand color on hover (Iconify "logos").
@@ -65,7 +66,7 @@ const logos = [
         <span class="mb-right">
           <span class="hint" data-hint>Click the icon</span>
           <button class="tray is-open" data-tray aria-label="Toggle the Gigaflush panel" aria-expanded="true">
-            <svg viewBox="150 150 724 724" fill="none"><path d="M687.3 317.3A262 262 0 1 0 774 512H552"></path></svg>
+            <TrayMark />
           </button>
           <Icon name="ph:wifi-high-bold" size={15} />
           <Icon name="ph:battery-high-bold" size={18} />
@@ -488,10 +489,9 @@ const logos = [
     cursor: pointer;
     transition: background-color 200ms;
   }
-  .tray svg {
+  .tray :global(svg) {
     width: 14px;
     height: 14px;
-    stroke-width: 124;
   }
   .tray.is-open,
   .tray:hover {

@@ -512,13 +512,14 @@ const rows = [...card.querySelectorAll<HTMLElement>(".rv-row")];
     color: var(--page);
   }
 
-  /* Reclaim: hero total over a tall segmented bar (validated categorical
-     slots 1-4, separate light and dark steps). */
+  /* Reclaim: hero total over a tall segmented bar (the cleanup colours,
+     separate light and dark steps). */
   .viz-reclaim {
-    --series-1: #2a78d6;
-    --series-2: #eb6834;
-    --series-3: #1baf7a;
-    --series-4: #eda100;
+    /* Cleanup colours (brand/make.py PALETTE). */
+    --series-1: #6271f5;
+    --series-2: #9d72f0;
+    --series-3: #1fae9d;
+    --series-4: #e5779c;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -527,17 +528,17 @@ const rows = [...card.querySelectorAll<HTMLElement>(".rv-row")];
     padding: 32px 28px 26px;
   }
   :global(:root[data-theme="dark"]) .viz-reclaim {
-    --series-1: #3987e5;
-    --series-2: #d95926;
-    --series-3: #199e70;
-    --series-4: #c98500;
+    --series-1: #97a3ff;
+    --series-2: #c4a3ff;
+    --series-3: #5edbc9;
+    --series-4: #ffa1bf;
   }
   @media (prefers-color-scheme: dark) {
     :global(:root:where(:not([data-theme="light"]))) .viz-reclaim {
-      --series-1: #3987e5;
-      --series-2: #d95926;
-      --series-3: #199e70;
-      --series-4: #c98500;
+      --series-1: #97a3ff;
+      --series-2: #c4a3ff;
+      --series-3: #5edbc9;
+      --series-4: #ffa1bf;
     }
   }
   .rc-label {

@@ -4,6 +4,7 @@ import NativeStack from "./react/bento/NativeStack.tsx";
 import LocalOnly from "./react/bento/LocalOnly.tsx";
 import ParallelScan from "./react/bento/ParallelScan.tsx";
 import { GITHUB_URL } from "../config";
+import TrayMark from "./TrayMark.astro";
 ---
 
 <section class="section">
@@ -20,7 +21,7 @@ import { GITHUB_URL } from "../config";
       </div>
       <div class="mini-bar" aria-hidden="true">
         <span class="mb-items"><i></i><i></i><i></i></span>
-        <span class="mb-icon"><svg viewBox="150 150 724 724" fill="none" stroke-width="124"><path d="M687.3 317.3A262 262 0 1 0 774 512H552"></path></svg></span>
+        <span class="mb-icon"><TrayMark /></span>
         <span class="mb-time">9:41</span>
         <div class="drop">
           <b>7.9 GB</b>
@@ -164,10 +165,9 @@ import { GITHUB_URL } from "../config";
     border-radius: 6px;
     transition: background-color 200ms;
   }
-  .mb-icon svg {
+  .mb-icon :global(svg) {
     width: 12px;
     height: 12px;
-    stroke-width: 124;
   }
   .mb-time {
     position: absolute;
