@@ -56,7 +56,7 @@ replaces pricing.
       (FAQPage, HowTo, BreadcrumbList, BlogPosting, SoftwareApplication).
 - [ ] Verify the domain in Google Search Console (DNS TXT record) and Bing
       Webmaster Tools (it can import from Search Console), submit
-      `https://gigaflush.com/sitemap-index.xml`, and request indexing for
+      `https://gigaflush.com/sitemap.xml`, and request indexing for
       `/`, `/guides`, `/mac`, `/windows`, `/linux` and the `/clean/*` pages.
 - [ ] Turn on Cloudflare's Crawler Hints (Caching → Configuration), which
       pings IndexNow (Bing, Yandex) when pages change.

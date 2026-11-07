@@ -52,7 +52,6 @@ export async function cards(): Promise<Card[]> {
       chips: p.data.tags.slice(0, 3),
     })),
     ...platforms.map((p) => ({ key: p.slug, kicker: `Gigaflush for ${p.name}`, title: p.h1, meta: "Free download" })),
-    { key: "sitemap", kicker: "Sitemap", title: "Everything", dim: "in one place." },
     { key: "support", kicker: "Support", title: "Help installing", dim: "and using Gigaflush." },
     { key: "privacy", kicker: "Privacy", title: "No telemetry. No tracking.", dim: "No account." },
     { key: "terms", kicker: "Terms", title: "Free software,", dim: "GPL-3.0." },
