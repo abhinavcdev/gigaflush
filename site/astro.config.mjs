@@ -1,5 +1,5 @@
 // @ts-check
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync, renameSync, rmSync } from "node:fs";
 import { defineConfig } from "astro/config";
 import react from "@astrojs/react";
 import mdx from "@astrojs/mdx";
@@ -34,6 +34,16 @@ export default defineConfig({
         return item;
       },
     }),
+    // The site fits in one sitemap, so publish it at the conventional /sitemap.xml.
+    {
+      name: "single-sitemap",
+      hooks: {
+        "astro:build:done": ({ dir }) => {
+          renameSync(new URL("sitemap-0.xml", dir), new URL("sitemap.xml", dir));
+          rmSync(new URL("sitemap-index.xml", dir));
+        },
+      },
+    },
   ],
   markdown: {
     shikiConfig: {

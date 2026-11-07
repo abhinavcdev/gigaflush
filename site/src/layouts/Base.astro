@@ -75,7 +75,7 @@ const schemas = schema ? (Array.isArray(schema) ? schema : [schema]) : [];
     <link rel="manifest" href="/site.webmanifest" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="alternate" type="application/rss+xml" title="Gigaflush blog" href="/rss.xml" />
-    <link rel="sitemap" href="/sitemap-index.xml" />
+    <link rel="sitemap" href="/sitemap.xml" />
     <link rel="alternate" type="text/plain" title="llms.txt" href="/llms.txt" />
     <link rel="preconnect" href="https://api.github.com" crossorigin />
     {schemas.map((s) => <script type="application/ld+json" set:html={JSON.stringify(s)} />)}
