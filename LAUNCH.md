@@ -1,15 +1,11 @@
 # Launch checklist
 
 The model: Gigaflush is free and open source (GPL-3.0-or-later) on every
-platform. Unsigned builds are published on GitHub Releases; a tip jar
-replaces pricing.
+platform. Unsigned builds are published on GitHub Releases. There is no pricing;
+the ask is a star on GitHub.
 
 ## 1. Accounts
 
-- [ ] **Tip jar.** Enable GitHub Sponsors for `abhinavcdev` (no fee on personal
-      sponsorships), or use Ko-fi / Buy Me a Coffee and update `TIP_URL` in
-      [site/src/config.ts](site/src/config.ts). The app links to
-      `gigaflush.com/#tip`, so it follows whatever the site points at.
 - [ ] Domain `gigaflush.com` (or update `site` in
       [site/astro.config.mjs](site/astro.config.mjs) and the links in
       [src/main.js](src/main.js)).
@@ -23,8 +19,6 @@ replaces pricing.
       contributions are accepted under GPL-3.0-or-later.
 - [ ] If `main` is protected, let `github-actions[bot]` push, so the Release
       workflow can commit the version bump.
-- [ ] Turn on the FUNDING button: add `.github/FUNDING.yml` with
-      `github: abhinavcdev`.
 
 ## 3. First release
 

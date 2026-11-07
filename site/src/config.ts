@@ -17,8 +17,4 @@ export const DOWNLOADS = {
   sums: `${DOWNLOAD_BASE}/SHA256SUMS.txt`,
 };
 
-// The tip jar. GitHub Sponsors takes no fee on personal sponsorships; enable it
-// at https://github.com/sponsors, or point this at Ko-fi / Buy Me a Coffee.
-export const TIP_URL = "https://github.com/sponsors/abhinavcdev";
-
 export const SUPPORT_EMAIL = "support@gigaflush.com";

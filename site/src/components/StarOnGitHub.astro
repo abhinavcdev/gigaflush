@@ -1,29 +1,29 @@
 ---
 import Icon from "./Icon.astro";
-import { TIP_URL, GITHUB_URL } from "../config";
+import { GITHUB_URL } from "../config";
 ---
 
-<section class="section tip" id="tip">
+<section class="section star" id="star">
   <div class="inner card" data-reveal>
-    <div class="jar" aria-hidden="true">
-      <Icon name="ph:coffee" size={30} />
+    <div class="logo" aria-hidden="true">
+      <Icon name="ph:github-logo" size={30} />
     </div>
     <div class="copy">
       <h2>Saved you a few gigabytes?</h2>
-      <p>Gigaflush is free and stays free. If it earned a spot in your menu bar, a tip helps pay for the next ecosystem, the Windows server view, and the time spent on bug reports.</p>
+      <p>Gigaflush is free and open source. A star on GitHub helps other developers find it.</p>
     </div>
     <div class="actions">
-      <a href={TIP_URL} class="key key-primary" data-press>
-        <Icon name="ph:heart-fill" size={15} class="heart" />
-        Leave a tip
+      <a href={GITHUB_URL} class="key key-primary" data-press>
+        <Icon name="ph:star-fill" size={15} class="icon-star" />
+        Star on GitHub
       </a>
-      <a href={GITHUB_URL} class="more-link">Or star it on GitHub</a>
+      <a href={`${GITHUB_URL}/issues`} class="more-link">Report an issue</a>
     </div>
   </div>
 </section>
 
 <style>
-  .tip {
+  .star {
     padding-block: 64px;
   }
   .inner {
@@ -36,7 +36,7 @@ import { TIP_URL, GITHUB_URL } from "../config";
       radial-gradient(70% 140% at 0% 0%, var(--glow), transparent),
       var(--surface);
   }
-  .jar {
+  .logo {
     display: grid;
     place-items: center;
     width: 64px;
@@ -67,8 +67,8 @@ import { TIP_URL, GITHUB_URL } from "../config";
   .actions .more-link {
     font-size: 14px;
   }
-  .key :global(.heart) {
-    color: #ff375f;
+  .key :global(.icon-star) {
+    color: #f5b301;
   }
   @media (max-width: 860px) {
     .inner {
