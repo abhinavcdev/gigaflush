@@ -221,7 +221,7 @@ jobs:
           - **Windows:** on the SmartScreen prompt, click **More info → Run anyway**.
           - **Linux:** `chmod +x Gigaflush-linux-x86_64.AppImage`, then run it.
 
-          Verify downloads with `SHA256SUMS.txt`. If Gigaflush saved you some space, there's a [tip jar](https://gigaflush.com/#tip).
+          Verify downloads with `SHA256SUMS.txt`. If Gigaflush saved you some space, [star it on GitHub](https://github.com/abhinavcdev/gigaflush).
           EOF
 
       - name: Create GitHub Release
