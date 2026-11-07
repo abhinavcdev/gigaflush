@@ -1,7 +1,13 @@
 <div align="center">
-  <img src="brand/app-icon.svg" width="72" height="72" alt="Gigaflush icon" />
+  <a href="https://gigaflush.com">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="brand/app-icon.svg" />
+      <img src="brand/app-icon-light.svg" width="96" height="96" alt="Gigaflush" />
+    </picture>
+  </a>
   <h1>Gigaflush</h1>
-  <p>Find generated project files. Review what goes. Make room to build.</p>
+  <p>Clean up <code>node_modules</code>, Rust <code>target</code>, Flutter <code>build</code>, Gradle and Python caches across every project.<br />Review what goes. Make room to build.</p>
+  <p><a href="https://gigaflush.com/#download"><b>Download free</b></a> · macOS · Windows · Linux</p>
 
   ![License](https://img.shields.io/github/license/abhinavcdev/gigaflush)
   ![Release](https://img.shields.io/github/actions/workflow/status/abhinavcdev/gigaflush/release.yml?label=release)

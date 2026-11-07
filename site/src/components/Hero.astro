@@ -6,6 +6,9 @@ import { GITHUB_URL, DOWNLOADS } from "../config";
 
 // Mono logos at rest (Devicon), brand color on hover (Iconify "logos").
 // Rust and Gradle brand marks are near-black, so they brighten instead.
+// The folders the hero headline flips through, one per ecosystem.
+const flipWords = ["node_modules", "target", "build", ".dart_tool", ".gradle", ".mypy_cache", ".build"];
+
 const logos = [
   { name: "Node.js", mono: "devicon-plain:nodejs", color: "logos:nodejs-icon", folder: "node_modules", href: "/clean/node-modules" },
   { name: "Rust", mono: "devicon-plain:rust", color: null, folder: "target", href: "/clean/rust-target" },
@@ -25,7 +28,10 @@ const logos = [
       <div class="copy">
         <h1>
           <span class="line"><span class="li" style="--t:160ms">Your disk isn't full.</span></span>
-          <span class="line"><span class="li" style="--t:280ms">It's <span class="folder-name">node_modules</span>.</span></span>
+          <span class="line">
+            <span class="li" style="--t:280ms" aria-hidden="true">It's <span class="flip" data-flip={JSON.stringify(flipWords)}><span class="flip-word">node_modules</span></span>.</span>
+            <span class="sr-only">It's node_modules, Rust target, Flutter build, Gradle and Python caches.</span>
+          </span>
         </h1>
         <p class="lede enter" style="--t:520ms">
           Find the dependencies and build files eating your disk, and the dev servers your agents forgot. Review everything. Keep your code.
@@ -107,6 +113,51 @@ const logos = [
       document.getElementById("download")?.scrollIntoView();
       document.querySelector<HTMLDetailsElement>(`.plan[data-os="${os}"] .first-run`)?.setAttribute("open", "");
     }, 400));
+  }
+
+  // Headline: flip through the folders Gigaflush cleans. The old word slides
+  // up and out, the new one in from below, and the width eases so the full
+  // stop follows. Static under reduced motion.
+  const flip = document.querySelector<HTMLElement>("[data-flip]");
+  if (flip && !reduce) {
+    const list: string[] = JSON.parse(flip.dataset.flip!);
+    const widthOf = (text: string) => {
+      const probe = flip.firstElementChild!.cloneNode() as HTMLElement;
+      probe.textContent = text;
+      probe.style.cssText = "position:absolute;visibility:hidden";
+      flip.append(probe);
+      const w = probe.getBoundingClientRect().width;
+      probe.remove();
+      return w;
+    };
+    let index = 0;
+    let busy = false;
+    const step = async () => {
+      if (busy || document.hidden || !onScreen) return;
+      busy = true;
+      index = (index + 1) % list.length;
+      const current = flip.firstElementChild as HTMLElement;
+      const next = document.createElement("span");
+      next.className = "flip-word is-entering";
+      next.textContent = list[index];
+      flip.append(next);
+      flip.style.width = `${widthOf(list[index])}px`;
+      const ease = [0.16, 1, 0.3, 1] as const;
+      await Promise.all([
+        animate(current, { y: ["0%", "-105%"], opacity: [1, 0] }, { duration: 0.5, ease }),
+        animate(next, { y: ["105%", "0%"], opacity: [0, 1] }, { duration: 0.5, ease }),
+      ]);
+      current.remove();
+      next.classList.remove("is-entering");
+      busy = false;
+    };
+    let onScreen = true;
+    new IntersectionObserver(([e]) => (onScreen = e.isIntersecting)).observe(flip);
+    // Start after the headline has risen in; fix the width first so it can ease.
+    setTimeout(() => {
+      flip.style.width = `${flip.getBoundingClientRect().width}px`;
+      setInterval(step, 2400);
+    }, 1400);
   }
 
   // Clock.
@@ -302,6 +353,33 @@ const logos = [
     display: inline-block;
     animation: line-up 700ms var(--ease) both;
     animation-delay: var(--t);
+  }
+  /* The flipping folder name: one word in view, the next waiting below. */
+  .flip {
+    position: relative;
+    display: inline-block;
+    vertical-align: bottom;
+    height: 1.12em;
+    overflow: hidden;
+    transition: width 500ms var(--ease);
+  }
+  .flip-word {
+    display: inline-block;
+    white-space: nowrap;
+    color: var(--accent);
+  }
+  .flip-word.is-entering {
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
   .lede {
     max-width: 30em;
