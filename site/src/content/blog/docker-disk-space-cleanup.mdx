@@ -1,0 +1,76 @@
+---
+title: "Docker is using all your disk space: how to clean it up safely"
+seoTitle: "Docker using too much disk space? Clean it up"
+description: "Find out what Docker is storing with docker system df, then reclaim space from images, build cache, containers and volumes without losing data you need."
+date: 2026-11-19
+tags: ["docker", "how-to", "disk space"]
+keywords: ["docker disk space", "docker system prune", "docker system df", "docker using too much disk space", "docker builder prune", "docker image prune -a", "docker volume prune", "docker.raw huge mac", "docker desktop disk space", "wsl vhdx shrink docker", "clean up docker"]
+accent: "#4aa8ff"
+faqs:
+  - q: "Is docker system prune safe?"
+    a: "It removes stopped containers, unused networks, dangling images and unused build cache. Running containers and their images are untouched, and volumes are kept unless you add --volumes. The main risk is deleting a stopped container you meant to start again."
+  - q: "Why didn't Docker Desktop free any space after pruning?"
+    a: "On macOS and Windows, Docker runs inside a virtual machine with its own disk image. Pruning frees space inside that disk; the file on your Mac or PC can stay large until Docker Desktop compacts it or you shrink the virtual disk."
+  - q: "Does docker system prune delete volumes?"
+    a: "Not by default. Add --volumes to include unused volumes. Volumes often hold database data, so check docker volume ls before removing them."
+  - q: "What is the Docker build cache?"
+    a: "Layers kept by BuildKit so repeated builds are fast. It can grow to tens of gigabytes. docker builder prune clears it, and the next build recreates what it needs."
+---
+
+import CommandTabs from "../../components/react/CommandTabs.tsx";
+import Callout from "../../components/blog/Callout.astro";
+
+Docker never deletes anything on its own. Every image you pulled, every container you stopped, every build layer and every volume stays until you remove it. After a few months that's easily 50 GB. The good news: Docker can tell you exactly where the space went, and most of it is safe to reclaim.
+
+## Step 1: see what Docker is holding
+
+```bash
+docker system df          # summary: images, containers, volumes, build cache
+docker system df -v       # per image, container and volume
+```
+
+The **RECLAIMABLE** column is what you'd get back by removing everything not currently in use. Build cache and unused images are usually the biggest lines.
+
+## Step 2: clean up, from safest to strongest
+
+<CommandTabs
+  client:visible
+  id="prune"
+  tabs={[
+    { label: "Build cache", code: "docker builder prune        # unused build cache\ndocker builder prune -a     # all build cache", note: "Often the single biggest item. Builds are slower once, then the cache refills." },
+    { label: "Stopped containers", code: "docker container prune", note: "Stopped containers lose their writable layer. Data in volumes is kept." },
+    { label: "Unused images", code: "docker image prune         # dangling (untagged) images only\ndocker image prune -a      # every image not used by a container", note: "With -a you'll pull or rebuild images next time you need them." },
+    { label: "All at once", code: "docker system prune\ndocker system prune -a", note: "Containers, networks, dangling images and build cache; -a adds every unused image. Volumes are kept." },
+  ]}
+/>
+
+## Volumes: look before you delete
+
+Volumes are where containers keep data that should survive, like a local Postgres or Redis. That's the one category you can't rebuild.
+
+```bash
+docker volume ls
+docker volume ls -f dangling=true     # not used by any container
+docker volume prune                    # anonymous unused volumes
+docker volume prune -a                 # all unused volumes, named ones too
+```
+
+<Callout type="warn" title="Check named volumes first">
+  A volume named `myapp_pgdata` with no container attached might still be the only copy of a database you care about. Remove volumes by name with `docker volume rm` once you've checked, rather than pruning blindly.
+</Callout>
+
+## Docker Desktop: why the disk doesn't shrink
+
+On macOS and Windows, Docker runs in a Linux virtual machine whose disk is a single file. Pruning frees space **inside** that file, but the file itself may not shrink right away.
+
+- **macOS:** the disk image lives at `~/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw`. It's a sparse file, so Finder can report its maximum size rather than what it uses; `du -sh` on it shows the real usage. You can lower its size limit under **Settings → Resources → Advanced** (the disk image or virtual disk limit, depending on your Docker Desktop version).
+- **Windows (WSL 2):** the data lives in a `.vhdx` file that grows but doesn't shrink on its own. After pruning, run `wsl --shutdown`, then compact the file with `Optimize-VHD` (Hyper-V tools) or `diskpart`'s `compact vdisk`.
+- **Starting over:** Docker Desktop's **Troubleshoot → Clean / Purge data** removes everything at once. It deletes all images, containers and volumes.
+
+## Keep it from filling up again
+
+- Set a BuildKit garbage-collection limit in Docker Desktop's **Docker Engine** settings (`"builder": { "gc": { "enabled": true, "defaultKeepStorage": "20GB" } }`).
+- Use `docker run --rm` for one-off containers so they delete themselves on exit.
+- Run `docker system df` once a month; it takes a second.
+
+Docker is one of several piles on a developer machine. The others are project folders: `node_modules`, Rust `target`, Flutter `build` and the like, one copy per project. Gigaflush finds those across all your projects and removes the ones you choose; it doesn't manage Docker, so the commands above are the way to clean Docker itself. For a full sweep of a Mac, see the [developer cleanup checklist](/blog/free-up-disk-space-mac-developers).

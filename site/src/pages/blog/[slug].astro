@@ -12,7 +12,8 @@ export async function getStaticPaths() {
 }
 const { post, all } = Astro.props;
 const { Content, headings } = await render(post);
-const toc = headings.filter((h) => h.depth === 2);
+const faqs = post.data.faqs;
+const toc = [...headings.filter((h) => h.depth === 2), ...(faqs.length ? [{ slug: "faq", text: "FAQ" }] : [])];
 const url = new URL(`/blog/${post.id}`, Astro.site).href;
 const schema = [
   {
@@ -40,6 +41,15 @@ const schema = [
       { "@type": "ListItem", position: 3, name: post.data.title, item: url },
     ],
   },
+  ...(faqs.length
+    ? [
+        {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: faqs.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
+        },
+      ]
+    : []),
 ];
 ---
 
@@ -66,6 +76,19 @@ const schema = [
     <div class="layout">
       <article class="prose">
         <Content />
+        {
+          faqs.length > 0 && (
+            <section class="faq">
+              <h2 id="faq">Frequently asked questions</h2>
+              {faqs.map((f) => (
+                <>
+                  <h3>{f.q}</h3>
+                  <p>{f.a}</p>
+                </>
+              ))}
+            </section>
+          )
+        }
         <AppCta />
       </article>
       <aside class="toc">
@@ -257,6 +280,7 @@ const schema = [
     font-weight: 600;
   }
   .prose :global(:not(pre) > code) {
+    overflow-wrap: anywhere; /* long paths wrap on narrow screens */
     font-size: 0.86em;
     padding: 2px 6px;
     border-radius: 5px;

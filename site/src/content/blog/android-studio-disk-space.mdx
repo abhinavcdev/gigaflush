@@ -1,0 +1,86 @@
+---
+title: "Android Studio is eating your disk: emulators, SDKs and Gradle caches"
+seoTitle: "Free disk space from Android Studio and Gradle"
+description: "Where Android development uses disk space (emulators, SDK system images, the Gradle cache, build folders, old IDE versions) and how to reclaim each safely."
+date: 2026-11-19
+tags: ["android", "gradle", "disk space"]
+keywords: ["android studio disk space", "android emulator disk space", "delete avd", "android sdk size", "delete system images android", "sdkmanager uninstall", "gradle cache size", "delete .gradle caches", "android studio cache folder", "free up space android development"]
+accent: "#4fc58a"
+faqs:
+  - q: "Is it safe to delete Android emulators?"
+    a: "Yes, if you don't need what's installed on them. An emulator (AVD) holds its own disk image with the apps and data you put on it. Delete it from Device Manager and create a fresh one when you need it."
+  - q: "Can I delete ~/.gradle/caches?"
+    a: "Yes, it's a download and build cache shared by every Gradle project. The next build downloads dependencies again, so it needs a network connection and takes longer. Stop running Gradle daemons first with ./gradlew --stop."
+  - q: "Which Android SDK packages can I remove?"
+    a: "System images you no longer run emulators on are the big ones, followed by old platform and build-tools versions your projects don't target. Remove them in the SDK Manager or with sdkmanager --uninstall."
+---
+
+import CommandTabs from "../../components/react/CommandTabs.tsx";
+import Callout from "../../components/blog/Callout.astro";
+
+Android development stores more on disk than any other mobile toolchain: every emulator is a full device image, every API level downloads its own system images, and Gradle caches every dependency version it has ever resolved. Here's where it all goes, from biggest to smallest, and what's safe to remove.
+
+## Measure first
+
+<CommandTabs
+  client:visible
+  id="measure"
+  tabs={[
+    { label: "macOS", code: "du -sh ~/.android/avd ~/Library/Android/sdk ~/.gradle 2>/dev/null" },
+    { label: "Linux", code: "du -sh ~/.android/avd ~/Android/Sdk ~/.gradle 2>/dev/null" },
+    { label: "Windows", code: "# PowerShell: the usual locations\n$env:USERPROFILE\\.android\\avd\n$env:LOCALAPPDATA\\Android\\Sdk\n$env:USERPROFILE\\.gradle", note: "Check each folder's size in Explorer (Properties) or with a tool like WizTree." },
+  ]}
+/>
+
+## 1. Emulators (AVDs)
+
+Each Android Virtual Device keeps its own disk image in `~/.android/avd`, usually several gigabytes, more once you install apps and take snapshots. Old emulators you created for a one-off test are often the largest single item.
+
+- **Delete:** Android Studio → **Device Manager** → the menu next to a device → **Delete**.
+- **Shrink instead:** the same menu has **Wipe Data**, which resets the device and frees what's installed on it.
+- **Snapshots:** Quick Boot snapshots add more on top. Turn them off per device in its settings if you don't need fast boots.
+
+## 2. SDK system images and old platforms
+
+The SDK (`~/Library/Android/sdk` on macOS, `~/Android/Sdk` on Linux, `%LOCALAPPDATA%\Android\Sdk` on Windows) collects a system image for every emulator API level you've ever used, plus platforms and build-tools for every version your projects targeted.
+
+<CommandTabs
+  client:visible
+  id="sdk"
+  tabs={[
+    { label: "List what's installed", code: "sdkmanager --list_installed", note: "sdkmanager lives in the SDK's cmdline-tools/latest/bin folder." },
+    { label: "Remove a system image", code: "sdkmanager --uninstall \"system-images;android-33;google_apis;arm64-v8a\"", note: "Use the exact package path from the list." },
+    { label: "In Android Studio", code: "Settings → Languages & Frameworks → Android SDK\n→ SDK Platforms / SDK Tools → untick → Apply", note: "Tick Show Package Details to see individual system images." },
+  ]}
+/>
+
+Keep the platform and build-tools versions your current projects compile against, and the system image for each emulator you still use.
+
+## 3. The Gradle cache
+
+`~/.gradle` holds downloaded dependencies, the build cache, transformed artifacts and every Gradle distribution your projects' wrappers have downloaded. Gradle deletes cache entries it hasn't used in about a month, but a few active projects can still keep it at several gigabytes.
+
+<CommandTabs
+  client:visible
+  id="gradle"
+  tabs={[
+    { label: "Old Gradle versions", code: "ls ~/.gradle/wrapper/dists\nrm -rf ~/.gradle/wrapper/dists/gradle-7.*", note: "Each wrapper version is a full Gradle download. Remove versions none of your projects use." },
+    { label: "Whole cache", code: "./gradlew --stop\nrm -rf ~/.gradle/caches", note: "Stops Gradle daemons first. The next build downloads its dependencies again." },
+  ]}
+/>
+
+<Callout type="warn" title="Keep gradle.properties">
+  `~/.gradle/gradle.properties` and `~/.gradle/init.d` hold your own settings, sometimes signing keys or credentials. Delete `caches` and old `wrapper/dists`, never the whole `~/.gradle` folder. The difference between the global cache and each project's `.gradle` folder is covered in [the Gradle guide](/clean/gradle-cache).
+</Callout>
+
+## 4. Project build folders
+
+Every Android project keeps a `build` folder per module and a project-level `.gradle` folder. Both are regenerated by the next build, and in a multi-module app they easily reach a gigabyte or more. In Android Studio, **Build → Clean Project** clears `build` for the open project; `./gradlew clean` does the same from the terminal.
+
+## 5. Old Android Studio versions
+
+Each Android Studio release keeps its own settings, caches, logs and plugins in versioned folders, and old ones aren't removed on upgrade. On macOS look in `~/Library/Caches/Google`, `~/Library/Application Support/Google` and `~/Library/Logs/Google`; on Windows in `%LOCALAPPDATA%\Google` and `%APPDATA%\Google`. Delete folders for versions you no longer run. **File → Invalidate Caches** clears the current version's caches if the IDE misbehaves.
+
+## Across all your projects
+
+Steps 1 to 3 are one-time cleanups of shared tools. Step 4 grows with every project you clone, and that's what Gigaflush handles: it finds project `.gradle` folders next to a `build.gradle` or `settings.gradle` (and Flutter `build` folders, if you build Android apps with Flutter) across all your projects, so you can clear old ones in one pass. It leaves the global `~/.gradle`, the SDK and your emulators alone. More on Gradle and its neighbours in [Python, Gradle and Maven caches](/blog/python-gradle-maven-caches).

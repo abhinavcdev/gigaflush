@@ -1,0 +1,76 @@
+---
+title: "What's taking up my disk space? Find large folders on Mac, Linux and Windows"
+seoTitle: "Find what's taking up disk space (du, ncdu, WizTree)"
+description: "Find the biggest folders on your disk with du, ncdu, dust and gdu on macOS and Linux, or WizTree, WinDirStat and PowerShell on Windows."
+date: 2026-11-19
+tags: ["how-to", "disk space", "macos", "windows"]
+keywords: ["what is taking up disk space", "find large folders", "du sort by size", "du -sh sort", "ncdu", "dust disk usage", "find largest folders linux", "find large files mac terminal", "wiztree", "windirstat", "powershell folder size", "disk usage analyzer"]
+accent: "#62c6a8"
+faqs:
+  - q: "How do I list folders by size in the terminal?"
+    a: "On macOS and Linux, run du -sh * | sort -h inside a folder. It prints each item's total size, smallest to largest. Add .[!.]* to include hidden folders."
+  - q: "What is the best free disk usage analyzer?"
+    a: "For the terminal, ncdu is the most widely available and lets you browse and delete interactively. On Windows, WizTree is very fast because it reads the file table directly; WinDirStat is an open-source alternative. On Linux desktops, Baobab (Disk Usage Analyzer) is often preinstalled."
+  - q: "Why do du and Finder show different sizes?"
+    a: "They measure different things. du counts disk blocks actually used, while Finder can show logical file sizes. Sparse files, compression, APFS clones and hard links all make the two differ."
+---
+
+import CommandTabs from "../../components/react/CommandTabs.tsx";
+import Callout from "../../components/blog/Callout.astro";
+
+"Your disk is almost full" doesn't say what filled it. Before deleting anything, find out where the space went. These are the fastest ways to get that answer, from one-line commands to visual maps of your whole drive.
+
+## In the terminal: du
+
+`du` (disk usage) is on every Mac and Linux machine. The trick is sorting the output.
+
+<CommandTabs
+  client:visible
+  id="du"
+  tabs={[
+    { label: "This folder", code: "du -sh * .[!.]* 2>/dev/null | sort -h", note: "Each item in the current folder, smallest to largest, including hidden ones." },
+    { label: "Your home folder", code: "du -h -d 1 ~ 2>/dev/null | sort -h | tail -20", note: "-d 1 means one level deep. On Linux, --max-depth=1 does the same." },
+    { label: "Largest files", code: "find ~ -type f -size +1G -exec ls -lh {} + 2>/dev/null | sort -k5 -h", note: "Every file over 1 GB under your home folder." },
+  ]}
+/>
+
+<Callout type="tip" title="Start one level down">
+  Run `du` on your home folder first, then on the largest folder it shows, and keep going. Pointing it at `/` straight away is slow and full of permission errors.
+</Callout>
+
+## Interactive tools for the terminal
+
+These show a browsable list and let you drill down with arrow keys, which is much faster than re-running `du`.
+
+<CommandTabs
+  client:visible
+  id="tui"
+  tabs={[
+    { label: "ncdu", code: "brew install ncdu        # macOS\nsudo apt install ncdu    # Debian, Ubuntu\nncdu ~", note: "The classic. Press d to delete the selected item, after a confirmation." },
+    { label: "dust", code: "brew install dust\ndust ~", note: "A modern du that draws a bar chart of the biggest folders." },
+    { label: "gdu", code: "brew install gdu\ngdu ~", note: "Fast on SSDs because it scans in parallel." },
+  ]}
+/>
+
+## On Windows
+
+<CommandTabs
+  client:visible
+  id="windows"
+  tabs={[
+    { label: "PowerShell", code: "Get-ChildItem -Directory -Force | ForEach-Object {\n  [pscustomobject]@{\n    Folder = $_.Name\n    GB = [math]::Round((Get-ChildItem $_.FullName -Recurse -Force -ErrorAction SilentlyContinue |\n      Measure-Object Length -Sum).Sum / 1GB, 2)\n  }\n} | Sort-Object GB", note: "Each folder in the current directory with its size. Slow on very large trees." },
+    { label: "Visual tools", code: "winget install AntibodySoftware.WizTree\nwinget install WinDirStat.WinDirStat", note: "WizTree reads the NTFS file table directly and maps a whole drive in seconds." },
+  ]}
+/>
+
+On macOS there's also **System Settings → General → Storage**, which is good for the big picture but tends to lump developer files into "Developer" or "System Data". Graphical tools such as GrandPerspective, DaisyDisk or OmniDiskSweeper show exactly which folders those are.
+
+## What you'll usually find on a developer machine
+
+Once you're looking, the same names show up again and again:
+
+- **Project dependencies and build output:** `node_modules`, Rust `target`, Flutter `build` and `.dart_tool`, Swift `.build`, Gradle and Maven output. One copy per project, so they multiply with every repo you've cloned.
+- **Global caches:** npm, pnpm, Yarn, Cargo, Gradle and pip. See [clearing the JavaScript package manager caches](/blog/clear-npm-pnpm-yarn-bun-cache).
+- **Platform tooling:** [Xcode DerivedData and simulators](/blog/xcode-deriveddata-safe-to-delete), [Android Studio emulators and SDKs](/blog/android-studio-disk-space), and [Docker images and build cache](/blog/docker-disk-space-cleanup).
+
+The first group is the one that keeps growing as you start projects, and it's where Gigaflush comes in: instead of finding each folder by hand, it scans your projects for those folders, checks each sits next to its project file, and shows them by size so you can remove the ones from projects you've finished.

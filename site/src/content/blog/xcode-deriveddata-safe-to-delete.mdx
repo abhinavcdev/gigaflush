@@ -1,0 +1,82 @@
+---
+title: "Xcode DerivedData: is it safe to delete? (And the rest of Xcode's disk space)"
+seoTitle: "Is it safe to delete Xcode DerivedData?"
+description: "What DerivedData, Archives, iOS DeviceSupport and simulator runtimes are, which are safe to delete, and the commands to reclaim tens of gigabytes from Xcode."
+date: 2026-11-19
+tags: ["macos", "xcode", "swift", "disk space"]
+keywords: ["delete derived data xcode", "xcode deriveddata safe to delete", "xcode taking up space", "xcode storage mac", "clear xcode cache", "ios devicesupport delete", "xcrun simctl delete unavailable", "delete simulator runtime", "xcode archives delete", "deriveddata location"]
+accent: "#6fb6ff"
+faqs:
+  - q: "Is it safe to delete Xcode DerivedData?"
+    a: "Yes. DerivedData only holds build products, intermediate files and indexes that Xcode regenerates. Quit Xcode, delete the folder's contents, and the next build and indexing pass recreate what each project needs."
+  - q: "Where is DerivedData?"
+    a: "By default in ~/Library/Developer/Xcode/DerivedData. You can check or change it in Xcode under Settings, Locations, Derived Data."
+  - q: "Can I delete iOS DeviceSupport?"
+    a: "Yes. It holds debug symbols copied from each iOS version you've connected a device on. Xcode copies them again the next time you connect a device running that version, which takes a few minutes."
+  - q: "Should I delete Xcode Archives?"
+    a: "Only ones you're sure you won't need. Archives contain the dSYM files used to symbolicate crash reports for builds you shipped. Keep archives for any version that's still in users' hands."
+---
+
+import CommandTabs from "../../components/react/CommandTabs.tsx";
+import Callout from "../../components/blog/Callout.astro";
+
+If you build for Apple platforms, Xcode is likely the biggest developer item on your Mac. Most of it isn't the app itself but what it accumulates in `~/Library/Developer`: build caches, device symbols, archives and simulator runtimes. Some of it is disposable, and some of it you'll want to keep. Here's which is which.
+
+## Measure first
+
+<CommandTabs
+  client:visible
+  id="measure"
+  tabs={[
+    { label: "Everything", code: "du -sh ~/Library/Developer/Xcode/* ~/Library/Developer/CoreSimulator 2>/dev/null | sort -h" },
+    { label: "Simulators", code: "xcrun simctl list runtimes\nxcrun simctl runtime list", note: "The second command lists the downloadable runtimes Xcode manages, with sizes." },
+  ]}
+/>
+
+## DerivedData: safe to delete
+
+`~/Library/Developer/Xcode/DerivedData` holds build products, intermediate object files, module caches and the search index for every project you've opened. It grows with each project and each Xcode version, and nothing cleans it up on its own.
+
+Deleting it is safe. Quit Xcode first, then:
+
+```bash
+rm -rf ~/Library/Developer/Xcode/DerivedData/*
+```
+
+The next build is a full one and Xcode re-indexes the project, so expect one slow build. For a single project, **Product → Clean Build Folder** (⇧⌘K) clears just its build products.
+
+<Callout type="tip" title="Fixes odd build errors too">
+  Clearing DerivedData is the classic fix for stale index errors, "module not found" after a package update, and SwiftUI previews that won't load. It's worth trying before anything more drastic.
+</Callout>
+
+## iOS DeviceSupport: safe, with a short wait
+
+`~/Library/Developer/Xcode/iOS DeviceSupport` (and similar folders for watchOS and tvOS) stores symbols copied from each OS version of each device you've plugged in. Every iOS update adds a few gigabytes. Delete the versions you no longer debug on; Xcode copies them again when you next connect a device on that version.
+
+## Simulators: delete what you don't use
+
+Simulator runtimes are often the largest item of all, several gigabytes each.
+
+<CommandTabs
+  client:visible
+  id="sim"
+  tabs={[
+    { label: "Unavailable devices", code: "xcrun simctl delete unavailable", note: "Removes simulator devices whose runtime is no longer installed. Always safe." },
+    { label: "A whole runtime", code: "xcrun simctl runtime list\nxcrun simctl runtime delete <identifier>", note: "Or in Xcode: Settings → Components (Platforms in older versions), select a runtime, and delete it." },
+    { label: "Erase all simulators", code: "xcrun simctl erase all", note: "Resets every simulator's contents and settings. Frees the apps and data installed in them." },
+  ]}
+/>
+
+## Archives: keep the ones you shipped
+
+`~/Library/Developer/Xcode/Archives` holds every build you archived for TestFlight or the App Store. Each contains the dSYM files you need to symbolicate crash reports from that version. Delete archives for test builds and versions no one runs any more; keep the rest. In Xcode, **Window → Organizer → Archives** lets you delete them one at a time.
+
+## Smaller items worth a look
+
+- **`~/Library/Caches/com.apple.dt.Xcode`**: Xcode's own caches. Safe to delete while Xcode is closed.
+- **`~/Library/Caches/org.swift.swiftpm`**: downloaded Swift packages, shared across projects. Safe; packages download again on resolve.
+- **Old Xcode versions**: if you keep `Xcode-beta.app` or an older release around, each one is 10 GB or more.
+
+## Your projects' own build folders
+
+DerivedData isn't the only build output. Swift packages built from the command line keep a `.build` folder next to `Package.swift`, and if you also build Flutter, React Native or Rust projects, their `build`, `node_modules` and `target` folders sit inside your projects too. Gigaflush finds those project folders across everything you've cloned and removes the ones you pick (see the [Swift .build guide](/clean/swift-build)). It doesn't touch DerivedData or simulators, so use the commands above for those. For the rest of the Mac, the [developer cleanup checklist](/blog/free-up-disk-space-mac-developers) covers Docker, Homebrew and package caches.

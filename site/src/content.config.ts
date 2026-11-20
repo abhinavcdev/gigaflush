@@ -16,6 +16,8 @@ const blog = defineCollection({
     accent: z.string().default("#68aeff"),
     featured: z.boolean().default(false),
     figure: z.string().optional(),
+    // Shown at the end of the post and published as FAQPage data.
+    faqs: z.array(z.object({ q: z.string(), a: z.string() })).default([]),
   }),
 });
 

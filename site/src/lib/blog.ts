@@ -8,7 +8,9 @@ export async function getPosts() {
 }
 
 export function readingTime(post: Post) {
-  const words = (post.body ?? "").replace(/<[^>]+>|import .+/g, " ").split(/\s+/).filter(Boolean).length;
+  // Everything a reader sees counts, commands and tables included; only MDX
+  // import lines are skipped.
+  const words = (post.body ?? "").replace(/^import .+$/gm, " ").split(/\s+/).filter(Boolean).length;
   return Math.max(2, Math.round(words / 230));
 }
 
