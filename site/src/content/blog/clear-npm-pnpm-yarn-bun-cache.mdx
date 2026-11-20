@@ -1,0 +1,81 @@
+---
+title: "How to clear the npm, pnpm, Yarn and Bun caches (and when you shouldn't)"
+seoTitle: "Clear the npm, pnpm, Yarn and Bun cache"
+description: "Where each JavaScript package manager keeps its global cache, how big it gets, and the exact commands to check and clear it on macOS, Linux and Windows."
+date: 2026-11-19
+tags: ["node_modules", "npm", "how-to", "disk space"]
+keywords: ["npm cache clean", "clear npm cache", "npm cache clean --force", "pnpm store prune", "pnpm store path", "yarn cache clean", "yarn cache dir", "bun pm cache rm", "where is npm cache", "npm cache size", "clear package manager cache", "_cacache"]
+accent: "#7c8cff"
+faqs:
+  - q: "Is it safe to clear the npm cache?"
+    a: "Yes. The npm cache is a content-addressed store of downloaded packages. Clearing it never breaks a project; the next install just downloads what it needs again, so it's slower and needs a network connection."
+  - q: "Does npm cache clean free up node_modules?"
+    a: "No. The cache is one shared folder in your home directory. Each project's node_modules is a separate copy installed from it. To reclaim node_modules space you delete node_modules folders in your projects."
+  - q: "What does pnpm store prune delete?"
+    a: "Packages in the pnpm content-addressable store that no project on your machine references any more. Packages still linked from a project's node_modules are kept, so prune is safe to run at any time except during an install."
+  - q: "How do I find where my package manager keeps its cache?"
+    a: "Ask the tool: npm config get cache, pnpm store path, yarn cache dir (Yarn 1) or yarn config get cacheFolder (Yarn 2 and later), and bun pm cache for Bun."
+---
+
+import CommandTabs from "../../components/react/CommandTabs.tsx";
+import Callout from "../../components/blog/Callout.astro";
+
+Every JavaScript package manager keeps a global cache of the packages it has downloaded, so the next install can skip the network. It's a good trade, until a few years of installs leave several gigabytes in a folder you've never looked at. Here's where each cache lives, how to measure it, and how to clear it without breaking anything.
+
+<Callout type="note" title="Cache vs node_modules">
+  The **cache** is one shared folder in your home directory. **node_modules** is a per-project copy installed from it. Clearing the cache doesn't shrink any project, and deleting `node_modules` doesn't touch the cache. They're two different piles. For the second one, see [how to delete all node_modules folders](/blog/delete-all-node-modules).
+</Callout>
+
+## Measure first
+
+Ask each tool where its cache is, then check the size. Run only the lines for the package managers you use.
+
+<CommandTabs
+  client:visible
+  id="where"
+  tabs={[
+    { label: "macOS / Linux", code: "du -sh \"$(npm config get cache)\"\ndu -sh \"$(pnpm store path)\"\ndu -sh \"$(yarn cache dir)\"          # Yarn 1\ndu -sh ~/.bun/install/cache", note: "For Yarn 2 and later, use: yarn config get cacheFolder" },
+    { label: "Windows (PowerShell)", code: "npm config get cache\npnpm store path\nyarn cache dir\n# Size of a folder:\n(Get-ChildItem -Recurse -Force \"$env:LOCALAPPDATA\\npm-cache\" | Measure-Object Length -Sum).Sum / 1GB", note: "Swap in the path each command prints." },
+  ]}
+/>
+
+Typical locations, if you'd rather look in Finder or Explorer:
+
+| Tool | macOS | Linux | Windows |
+|---|---|---|---|
+| npm | `~/.npm/_cacache` | `~/.npm/_cacache` | `%LocalAppData%\npm-cache` |
+| pnpm | `~/Library/pnpm/store` | `~/.local/share/pnpm/store` | `%LocalAppData%\pnpm\store` |
+| Yarn 1 | `~/Library/Caches/Yarn` | `~/.cache/yarn` | `%LocalAppData%\Yarn\Cache` |
+| Yarn 2+ | `~/.yarn/berry/cache` | `~/.yarn/berry/cache` | `%LocalAppData%\Yarn\Berry\cache` |
+| Bun | `~/.bun/install/cache` | `~/.bun/install/cache` | `%UserProfile%\.bun\install\cache` |
+
+Paths change between versions and with your config, so trust the commands over the table.
+
+## Clear each cache
+
+<CommandTabs
+  client:visible
+  id="clear"
+  tabs={[
+    { label: "npm", code: "npm cache verify          # garbage-collect and check, keeps what's valid\nnpm cache clean --force   # remove everything", note: "npm asks for --force because it considers clearing unnecessary. verify is usually enough." },
+    { label: "pnpm", code: "pnpm store prune", note: "Removes packages no project on this machine references any more. The safest big win of the four." },
+    { label: "Yarn 1", code: "yarn cache clean" },
+    { label: "Yarn 2+", code: "yarn cache clean --all", note: "--all includes the global mirror that newer Yarn versions share between projects." },
+    { label: "Bun", code: "bun pm cache rm" },
+    { label: "npx", code: "rm -rf \"$(npm config get cache)/_npx\"", note: "Packages fetched by npx live in their own folder inside the npm cache." },
+  ]}
+/>
+
+## When you shouldn't clear it
+
+- **Offline or on a slow connection.** The cache is what lets you install without the network. Clearing it before a flight is a bad idea.
+- **To fix a broken install.** Corrupted caches are rare now. `npm cache verify` checks and repairs; reaching for `clean --force` first usually just costs you a re-download. Delete the project's `node_modules` and run `npm ci` instead, which reinstalls exactly what the lockfile pins.
+- **On CI.** Most CI setups restore the cache deliberately to speed builds. Clearing it there makes every run slower.
+
+<Callout type="tip" title="pnpm already saves you the most">
+  pnpm installs each package version once into its store and hard-links it into every project, so ten projects using the same React don't hold ten copies. If you juggle many Node projects, switching to pnpm shrinks `node_modules` far more than clearing any cache. More on why in [why node_modules is so big](/blog/why-is-node-modules-so-big).
+</Callout>
+
+## The bigger pile is usually node_modules
+
+Package caches top out at a few gigabytes. The `node_modules` folders in projects you stopped working on add up to far more, because each one is a full copy. Clear the cache for a quick win, then clear the old projects: run the commands in [our node_modules guide](/clean/node-modules), or scan your projects folder with Gigaflush and pick the ones to remove. Gigaflush handles project folders only; it never touches these global caches, so the commands above are still the way to clear them.

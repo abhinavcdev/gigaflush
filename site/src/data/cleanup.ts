@@ -44,7 +44,7 @@ export const guides: Guide[] = [
       { q: "Does deleting node_modules free disk space with pnpm?", a: "Less than the folder size suggests. pnpm hard-links files from a shared store, so the store still holds them. Run pnpm store prune to remove unreferenced packages." },
       { q: "How do I delete node_modules in all subfolders?", a: "Use find with -prune on macOS and Linux, Get-ChildItem in PowerShell, or a tool like Gigaflush or npkill that lists them first." },
     ],
-    posts: ["delete-all-node-modules", "why-is-node-modules-so-big", "delete-node-modules-windows-fast"],
+    posts: ["delete-all-node-modules", "why-is-node-modules-so-big", "next-vite-turbo-cache-folders", "clear-npm-pnpm-yarn-bun-cache"],
   },
   {
     slug: "rust-target",
@@ -140,7 +140,7 @@ export const guides: Guide[] = [
       { q: "Is it safe to delete the .build folder in Swift?", a: "Yes. It's SwiftPM's generated build directory. swift build restores it." },
       { q: "What's the difference between swift package clean and deleting .build?", a: "swift package clean removes build products but keeps dependency checkouts; deleting .build removes everything." },
     ],
-    posts: ["free-up-disk-space-mac-developers"],
+    posts: ["xcode-deriveddata-safe-to-delete", "free-up-disk-space-mac-developers"],
   },
   {
     slug: "gradle-cache",
@@ -164,7 +164,7 @@ export const guides: Guide[] = [
       { q: "Can I delete ~/.gradle/caches?", a: "Yes, but every project then re-downloads its dependencies. Gigaflush never touches the global cache." },
       { q: "Does gradle clean delete .gradle?", a: "No. ./gradlew clean deletes build output (build/), not the .gradle cache folder." },
     ],
-    posts: ["python-gradle-maven-caches", "flutter-clean-build-dart-tool"],
+    posts: ["android-studio-disk-space", "python-gradle-maven-caches"],
   },
   {
     slug: "maven-target",
