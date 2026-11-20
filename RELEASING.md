@@ -10,15 +10,18 @@ to the latest one.
 a version such as `0.2.0`, and run it. The workflow:
 
 1. Bumps the version in `package.json`, `package-lock.json`,
-   `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` and `Cargo.lock`,
-   commits `release: v0.2.0` to the branch you ran it on, and tags `v0.2.0`.
+   `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` and `Cargo.lock` in a
+   `release: v0.2.0` commit on top of `main`, tags it `v0.2.0`, and pushes
+   only the tag. `main` only accepts pull requests, so its version fields stay
+   as they are; the version that ships is the one on the tag.
 2. Builds macOS (universal `.dmg`), Windows x64 (`setup.exe` and `.msi`) and
    Linux x86_64 (`.AppImage`, `.deb`, `.rpm`) in parallel.
 3. Publishes the GitHub Release with every file under a stable name, a
    `SHA256SUMS.txt`, install notes, and auto-generated notes from merged PRs.
 
-Add a CHANGELOG entry before you run it. If the branch is protected, allow
-`github-actions[bot]` to push, or bump and tag by hand (below).
+Add a CHANGELOG entry before you run it. If a run fails after pushing its
+tag, run it again with the same version: a tag without a release is rebuilt
+as-is.
 
 **From your terminal:** bump `version` in `package.json` and
 `src-tauri/tauri.conf.json`, then:

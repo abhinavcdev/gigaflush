@@ -2,7 +2,9 @@
 #
 #   • Actions → Release → Run workflow, and type a version (e.g. 0.2.0). The
 #     workflow bumps the version in package.json, tauri.conf.json and
-#     Cargo.toml, commits, tags v0.2.0, and releases from that tag.
+#     Cargo.toml in a commit on top of main, tags it v0.2.0, and releases
+#     from that tag. Only the tag is pushed: main is protected and only
+#     changes through pull requests.
 #   • Or bump the versions yourself and push a tag: git tag v0.2.0 && git push --tags
 #
 # It builds macOS (universal), Windows x64 and Linux x86_64, then publishes a
@@ -73,10 +75,12 @@ jobs:
           ' "$VERSION"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # Skip the commit when the files already carry this version (a retry).
+          # Skip the commit when the files already carry this version.
           git diff --quiet || git commit -am "release: v$VERSION"
           git tag "v$VERSION"
-          git push origin HEAD "v$VERSION"
+          # Push the tag only. The bump commit lives on the tag, so main (which
+          # only accepts pull requests) keeps its version fields unchanged.
+          git push origin "v$VERSION"
 
       - name: Resolve tag
         id: tag

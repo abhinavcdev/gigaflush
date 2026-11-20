@@ -17,8 +17,6 @@ the ask is a star on GitHub.
       old URL) and make it public.
 - [ ] Commit the GPL `LICENSE`. Add a `CONTRIBUTING.md` that says
       contributions are accepted under GPL-3.0-or-later.
-- [ ] If `main` is protected, let `github-actions[bot]` push, so the Release
-      workflow can commit the version bump.
 
 ## 3. First release
 
