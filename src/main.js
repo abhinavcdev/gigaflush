@@ -40,7 +40,7 @@ const LINKS = {
   source: `https://github.com/${GITHUB_REPO}`,
   support: "https://gigaflush.com/support",
   download: "https://gigaflush.com/#download",
-  tip: "https://gigaflush.com/#tip",
+  star: `https://github.com/${GITHUB_REPO}`,
 };
 let appVersion = "";
 const THEME_MODES = ["system", "light", "dark"];

@@ -12,18 +12,12 @@ const modules = import.meta.glob("../../anatomy/figures/*.mjs", { eager: true })
 const mod = modules[`../../anatomy/figures/${name}.mjs`];
 if (!mod) throw new Error(`Unknown figure: ${name}`);
 const { meta } = mod;
-const { svg, readout } = mod.figure();
+const { svg } = mod.figure();
 ---
 
 <div class="iso fig-wrap" data-anatomy={still ? undefined : name}>
   <figure class="iso-figure">
     <div class="iso-plate">
-      <div class="iso-plate-corners" aria-hidden="true">
-        <span class="iso-plate-corner" data-corner="fig">{meta.fig}</span>
-        <span class="iso-plate-corner" data-corner="title">{meta.title}</span>
-        {!still && <span class="iso-plate-corner" data-corner="hint">{meta.hint}</span>}
-        <span class="iso-plate-corner" data-corner="readout" data-readout>{readout}</span>
-      </div>
       <div
         class="iso-stage"
         tabindex={still ? undefined : 0}
@@ -32,32 +26,6 @@ const { svg, readout } = mod.figure();
         set:html={svg}
       />
     </div>
-    {
-      !still && (
-        <figcaption class="iso-legend">
-          <span class="iso-keys">
-            {meta.keys.map((key: { mark: string; label: string }) => (
-              <span class="iso-key">
-                <svg class="iso-swatch" data-mark={key.mark} viewBox="0 0 16 10" aria-hidden="true">
-                  {key.mark === "raised" || key.mark === "lit" ? (
-                    <>
-                      <path d="M2 4.5 8 1.5 14 4.5 14 6 8 9 2 6Z" />
-                      <path class="iso-swatch-crease" d="M2 4.5 8 7.5 14 4.5" />
-                    </>
-                  ) : key.mark === "flat" ? (
-                    <path d="M2 6.5 8 3.5 14 6.5 8 9.5Z" />
-                  ) : (
-                    <path d="M1.5 5h13" />
-                  )}
-                </svg>
-                {key.label}
-              </span>
-            ))}
-          </span>
-          <span class="iso-caption">{meta.caption}</span>
-        </figcaption>
-      )
-    }
   </figure>
 </div>
 
@@ -69,12 +37,26 @@ const { svg, readout } = mod.figure();
     const load = modules[`../../anatomy/figures/${root.dataset.anatomy}.mjs`];
     if (!load) return;
     const mod: any = await load();
-    mod.mount(root.querySelector(".iso-stage"), root.querySelector("[data-readout]"));
+    // Figures report a text readout as they move; it isn't shown on the page.
+    mod.mount(root.querySelector(".iso-stage"), document.createElement("span"));
   });
 </script>
 
 <style>
   .fig-wrap {
     margin: 36px 0 40px;
+  }
+  .iso-figure {
+    margin: 0;
+  }
+  .iso-plate {
+    padding: 28px 24px;
+    border-radius: var(--radius);
+    box-shadow: 0 0 0 1px var(--line);
+  }
+  @media (max-width: 560px) {
+    .iso-plate {
+      padding: 20px 12px;
+    }
   }
 </style>

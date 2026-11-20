@@ -67,8 +67,7 @@ the website build.
 
 ## Website
 
-[`site/`](site/) is an Astro project (Node ≥ 22.23.4). Links to GitHub and the
-tip jar live in [site/src/config.ts](site/src/config.ts).
+[`site/`](site/) is an Astro project (Node ≥ 22.23.4). Links to GitHub live in [site/src/config.ts](site/src/config.ts).
 
 ```bash
 npm install && npm --prefix site install

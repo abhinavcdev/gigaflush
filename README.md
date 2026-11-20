@@ -68,7 +68,7 @@ OS asks once on first launch:
 - **Windows:** on the SmartScreen prompt, click **More info → Run anyway**.
 - **Linux:** `chmod +x Gigaflush-linux-x86_64.AppImage` and run it.
 
-If Gigaflush saves you some space, there's a [tip jar](https://gigaflush.com/#tip).
+If Gigaflush saves you some space, please star this repo.
 
 ## Features
 

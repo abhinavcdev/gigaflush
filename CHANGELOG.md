@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **Star on GitHub replaces the tip jar** on the site and in the app's About
+  line.
 - **New logo: "g."** A bold lowercase g with a square full stop. Its bowl
   is solid blue: the part of the disk Gigaflush frees. Replaces the previous
   mark, which was too close to Google's G. New app icon set, menu-bar icon,
